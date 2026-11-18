@@ -1,0 +1,27 @@
+{
+  "name": "@argus/docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "docusaurus build --out-dir dist",
+    "dev": "docusaurus start",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"for (const path of ['dist', '.docusaurus']) require('node:fs').rmSync(path, { recursive: true, force: true })\""
+  },
+  "dependencies": {
+    "@docusaurus/core": "catalog:",
+    "@docusaurus/preset-classic": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "catalog:",
+    "@docusaurus/plugin-content-docs": "catalog:",
+    "@docusaurus/tsconfig": "catalog:",
+    "@docusaurus/types": "catalog:",
+    "@types/react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

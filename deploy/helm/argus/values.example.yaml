@@ -1,0 +1,30 @@
+# Lint/template example only. Replace every endpoint and supply images built from
+# implemented applications before installing this chart.
+external:
+  publicWebUrl: https://argus.example.invalid
+  publicApiUrl: https://argus.example.invalid/api
+  publicRealtimeUrl: wss://argus.example.invalid/realtime
+  publicElectricUrl: https://sync.example.invalid
+  publicTilesUrl: https://tiles.example.invalid
+  postgresql:
+    host: postgres.example.invalid
+    port: 5432
+    database: argus
+    sslMode: require
+  nats:
+    host: nats.example.invalid
+    port: 4222
+    tlsEnabled: true
+  objectStorage:
+    endpoint: https://s3.example.invalid
+    region: ap-southeast-2
+    bucket: argus-attachments
+    forcePathStyle: false
+
+secrets:
+  api:
+    existingSecret: argus-api
+  realtime:
+    existingSecret: argus-realtime
+  worker:
+    existingSecret: argus-worker

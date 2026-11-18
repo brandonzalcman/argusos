@@ -1,0 +1,19 @@
+{{- $root := . -}}
+{{- range $name, $workload := .Values.workloads }}
+{{- if $workload.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "argus.fullname" $root }}-{{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "argus.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  minAvailable: {{ $workload.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "argus.selectorLabels" (dict "root" $root "name" $name) | nindent 6 }}
+---
+{{- end }}
+{{- end }}

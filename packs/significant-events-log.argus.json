@@ -1,0 +1,22 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "significant-events-log",
+  "name": "Significant Events Log",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for a future chronological incident event log.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.incident-scoped",
+    "boards.list-detail-form",
+    "audit.record-history"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

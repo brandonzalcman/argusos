@@ -1,0 +1,38 @@
+{
+  "name": "@argus/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "expo-router/entry",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "expo start",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\""
+  },
+  "dependencies": {
+    "@argus/schema": "workspace:*",
+    "expo": "catalog:",
+    "expo-constants": "catalog:",
+    "expo-linking": "catalog:",
+    "expo-router": "catalog:",
+    "expo-status-bar": "catalog:",
+    "react": "catalog:",
+    "react-native": "catalog:",
+    "react-native-safe-area-context": "catalog:",
+    "react-native-screens": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

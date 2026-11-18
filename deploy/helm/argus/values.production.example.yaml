@@ -1,0 +1,83 @@
+# Production values TEMPLATE (lint/template fixture only). With production: true the
+# chart refuses to render unless every workload sets an immutable image digest.
+# The all-zero digests below are deliberate placeholders that match the schema but
+# reference no image; CI replaces nothing, so they must be overridden by the release
+# pipeline with the digests of the signed images it built.
+# TODO(verify): wire release digests (e.g. --set workloads.api.image.digest=...).
+production: true
+
+external:
+  publicWebUrl: https://argus.example.invalid
+  publicApiUrl: https://argus.example.invalid/api
+  publicRealtimeUrl: wss://argus.example.invalid/realtime
+  publicElectricUrl: https://sync.example.invalid
+  publicTilesUrl: https://tiles.example.invalid
+  postgresql:
+    host: postgres.example.invalid
+    port: 5432
+    database: argus
+    sslMode: verify-full
+  nats:
+    host: nats.example.invalid
+    port: 4222
+    tlsEnabled: true
+  objectStorage:
+    endpoint: https://s3.example.invalid
+    region: ap-southeast-2
+    bucket: argus-attachments
+    forcePathStyle: false
+
+secrets:
+  api:
+    existingSecret: argus-api
+  realtime:
+    existingSecret: argus-realtime
+  worker:
+    existingSecret: argus-worker
+
+workloads:
+  web:
+    image:
+      digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  api:
+    image:
+      digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  realtime:
+    image:
+      digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  worker:
+    image:
+      digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: argus.example.invalid
+      paths:
+        web: /
+        api: /api
+        realtime: /realtime
+  tls:
+    - secretName: argus-tls
+      hosts: [argus.example.invalid]
+
+networkPolicy:
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+  # Replace with the real peers (CIDR blocks or selectors) of each dependency.
+  egress:
+    postgresql:
+      to:
+        - ipBlock: { cidr: 192.0.2.10/32 } # TEST-NET-1 placeholder
+    nats:
+      to:
+        - ipBlock: { cidr: 192.0.2.11/32 }
+    objectStorage:
+      to:
+        - ipBlock: { cidr: 192.0.2.12/32 }
+    electric:
+      to:
+        - ipBlock: { cidr: 192.0.2.13/32 }

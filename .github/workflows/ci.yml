@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      runIntegration:
+        description: Run Docker-backed integration suites (currently TODO-only)
+        type: boolean
+        default: false
+      runE2E:
+        description: Run Playwright suites (currently skipped)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Strict checks, build, and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Biome lint
+        run: pnpm lint
+      - name: Biome formatting
+        run: pnpm format:check
+      - name: Strict workspace typecheck
+        run: pnpm typecheck
+      - name: Strict cross-project test typecheck
+        run: pnpm exec tsc --noEmit --project tests/tsconfig.json
+      - name: Build packages and applications
+        run: pnpm build
+      - name: Unit tests
+        run: pnpm test
+      - name: Validate Playwright discovery without a browser
+        run: pnpm exec playwright test --config tests/e2e/playwright.config.ts --list
+
+  infrastructure:
+    name: Compose, Helm, and load-script validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose model
+        run: >-
+          docker compose
+          --env-file deploy/compose/.env.example
+          --file deploy/compose/docker-compose.yaml
+          config --quiet
+      - uses: azure/setup-helm@v4
+      - name: Lint Helm chart with explicit external placeholders
+        run: helm lint deploy/helm/argus --values deploy/helm/argus/values.example.yaml
+      - name: Render Helm chart
+        run: >-
+          helm template argus deploy/helm/argus
+          --namespace argus-system
+          --values deploy/helm/argus/values.example.yaml
+      - uses: grafana/setup-k6-action@v1
+      - name: Validate k6 script without executing network load
+        run: k6 inspect tests/performance/realtime.k6.js
+
+  integration:
+    name: Optional Docker-backed integration tests
+    if: github.event_name == 'workflow_dispatch' && inputs.runIntegration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Confirm Testcontainers runtime
+        run: docker info
+      - name: Integration tests
+        run: pnpm test:integration
+
+  e2e:
+    name: Optional Playwright tests
+    if: github.event_name == 'workflow_dispatch' && inputs.runE2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Playwright tests against an already running deployment
+        env:
+          ARGUS_E2E_BASE_URL: http://127.0.0.1:4173
+        run: pnpm test:e2e
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

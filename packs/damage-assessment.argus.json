@@ -1,0 +1,25 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "damage-assessment",
+  "name": "Damage Assessment",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for future mobile-first assessments with consented photos and location.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.incident-scoped",
+    "boards.mobile-layout",
+    "mobile.photo-capture",
+    "mobile.foreground-location",
+    "mobile.offline-drafts",
+    "attachments.malware-scanning"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

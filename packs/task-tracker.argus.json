@@ -1,0 +1,23 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "task-tracker",
+  "name": "Task Tracker",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for future incident tasks, assignments and optimistic status changes.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.incident-scoped",
+    "boards.list-detail-kanban",
+    "positions.assignments",
+    "sync.optimistic-versions"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

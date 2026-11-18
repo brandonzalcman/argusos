@@ -1,0 +1,248 @@
+/*
+ * ArgusOS design tokens. Canonical values live in tokens.ts; tokens.test.ts verifies that this
+ * file mirrors them and that every text/graphic pairing meets WCAG 2.2 AA in every mode.
+ *
+ * Modes:   <html data-argus-mode="light | dark | high-contrast">  (absent = follow the OS)
+ * Density: <html data-argus-density="comfortable | compact">       (absent = comfortable)
+ */
+
+:root {
+  color-scheme: light;
+  --argus-color-bg: #f5f6f8;
+  --argus-color-surface: #ffffff;
+  --argus-color-surface-sunken: #eef0f3;
+  --argus-color-surface-raised: #ffffff;
+  --argus-color-surface-hover: #e9ecf0;
+  --argus-color-fg: #111820;
+  --argus-color-fg-muted: #4b5565;
+  --argus-color-fg-subtle: #5f6978;
+  --argus-color-border: #dde1e6;
+  --argus-color-border-strong: #868f9c;
+  --argus-color-accent: #2853c7;
+  --argus-color-accent-hover: #2147ad;
+  --argus-color-on-accent: #ffffff;
+  --argus-color-accent-text: #2449b0;
+  --argus-color-accent-subtle: #e9effb;
+  --argus-color-focus: #2853c7;
+  --argus-color-info: #0a5c80;
+  --argus-color-info-subtle: #e5f3f9;
+  --argus-color-info-solid: #0e7aa8;
+  --argus-color-success: #136a33;
+  --argus-color-success-subtle: #e6f4ea;
+  --argus-color-success-solid: #1d8a45;
+  --argus-color-warning: #7f4d00;
+  --argus-color-warning-subtle: #fcf2db;
+  --argus-color-warning-solid: #b37400;
+  --argus-color-high: #9c3a06;
+  --argus-color-high-subtle: #fdeee3;
+  --argus-color-high-solid: #cf5a12;
+  --argus-color-critical: #b0201a;
+  --argus-color-critical-subtle: #fdecea;
+  --argus-color-critical-solid: #c8271e;
+
+  /* Shadows (light) */
+  --argus-shadow-sm: 0 1px 2px rgb(16 24 32 / 0.06);
+  --argus-shadow-md: 0 2px 4px rgb(16 24 32 / 0.06), 0 6px 16px rgb(16 24 32 / 0.08);
+  --argus-shadow-lg: 0 4px 8px rgb(16 24 32 / 0.06), 0 16px 40px rgb(16 24 32 / 0.14);
+  --argus-overlay: rgb(10 14 20 / 0.45);
+
+  /* Typography */
+  --argus-font-sans:
+    "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --argus-font-mono:
+    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Cascadia Mono", "SF Mono", Menlo,
+    Consolas, monospace;
+
+  /* Radii */
+  --argus-radius-sm: 0.25rem;
+  --argus-radius-md: 0.5rem;
+  --argus-radius-lg: 0.75rem;
+
+  /* Motion: only for change and attention */
+  --argus-duration-fast: 120ms;
+  --argus-duration-base: 160ms;
+  --argus-duration-slow: 200ms;
+  --argus-ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layers */
+  --argus-z-sticky: 10;
+  --argus-z-topbar: 20;
+  --argus-z-sidebar: 30;
+  --argus-z-overlay: 40;
+  --argus-z-modal: 50;
+  --argus-z-popover: 60;
+  --argus-z-toast: 70;
+  --argus-z-tooltip: 80;
+  --argus-z-skiplink: 90;
+
+  /* Layout */
+  --argus-sidebar-w: 15rem;
+  --argus-sidebar-w-collapsed: 3.5rem;
+
+  /* Density: comfortable (default) */
+  --argus-control-h: 2.25rem;
+  --argus-control-h-sm: 1.75rem;
+  --argus-control-h-lg: 2.75rem;
+  --argus-control-px: 0.75rem;
+  --argus-row-h: 2.5rem;
+  --argus-cell-px: 0.75rem;
+  --argus-cell-text: 0.875rem;
+  --argus-panel-p: 1.25rem;
+  --argus-gap: 1rem;
+  --argus-page-p: 1.5rem;
+  --argus-topbar-h: 3.5rem;
+}
+
+/* Dark: explicit, or following the OS when no mode is pinned. */
+:root[data-argus-mode="dark"] {
+  color-scheme: dark;
+  --argus-color-bg: #0c0f13;
+  --argus-color-surface: #13171d;
+  --argus-color-surface-sunken: #090b0e;
+  --argus-color-surface-raised: #1a1f27;
+  --argus-color-surface-hover: #1e242d;
+  --argus-color-fg: #e7eaee;
+  --argus-color-fg-muted: #a2abb8;
+  --argus-color-fg-subtle: #8c96a4;
+  --argus-color-border: #272e38;
+  --argus-color-border-strong: #5d6776;
+  --argus-color-accent: #6d9bff;
+  --argus-color-accent-hover: #8aafff;
+  --argus-color-on-accent: #0a1020;
+  --argus-color-accent-text: #93b6ff;
+  --argus-color-accent-subtle: #172238;
+  --argus-color-focus: #7aa5ff;
+  --argus-color-info: #6ccaf0;
+  --argus-color-info-subtle: #0f2430;
+  --argus-color-info-solid: #4fb6e0;
+  --argus-color-success: #6dd496;
+  --argus-color-success-subtle: #0f2618;
+  --argus-color-success-solid: #3fb26c;
+  --argus-color-warning: #f0c35a;
+  --argus-color-warning-subtle: #2a2109;
+  --argus-color-warning-solid: #d9a530;
+  --argus-color-high: #ff9e66;
+  --argus-color-high-subtle: #2e1a0e;
+  --argus-color-high-solid: #f07c3c;
+  --argus-color-critical: #ff7a70;
+  --argus-color-critical-subtle: #331312;
+  --argus-color-critical-solid: #f2564b;
+  --argus-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --argus-shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  --argus-shadow-lg: 0 6px 12px rgb(0 0 0 / 0.45), 0 20px 48px rgb(0 0 0 / 0.5);
+  --argus-overlay: rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-argus-mode]) {
+    color-scheme: dark;
+    --argus-color-bg: #0c0f13;
+    --argus-color-surface: #13171d;
+    --argus-color-surface-sunken: #090b0e;
+    --argus-color-surface-raised: #1a1f27;
+    --argus-color-surface-hover: #1e242d;
+    --argus-color-fg: #e7eaee;
+    --argus-color-fg-muted: #a2abb8;
+    --argus-color-fg-subtle: #8c96a4;
+    --argus-color-border: #272e38;
+    --argus-color-border-strong: #5d6776;
+    --argus-color-accent: #6d9bff;
+    --argus-color-accent-hover: #8aafff;
+    --argus-color-on-accent: #0a1020;
+    --argus-color-accent-text: #93b6ff;
+    --argus-color-accent-subtle: #172238;
+    --argus-color-focus: #7aa5ff;
+    --argus-color-info: #6ccaf0;
+    --argus-color-info-subtle: #0f2430;
+    --argus-color-info-solid: #4fb6e0;
+    --argus-color-success: #6dd496;
+    --argus-color-success-subtle: #0f2618;
+    --argus-color-success-solid: #3fb26c;
+    --argus-color-warning: #f0c35a;
+    --argus-color-warning-subtle: #2a2109;
+    --argus-color-warning-solid: #d9a530;
+    --argus-color-high: #ff9e66;
+    --argus-color-high-subtle: #2e1a0e;
+    --argus-color-high-solid: #f07c3c;
+    --argus-color-critical: #ff7a70;
+    --argus-color-critical-subtle: #331312;
+    --argus-color-critical-solid: #f2564b;
+    --argus-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --argus-shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+    --argus-shadow-lg: 0 6px 12px rgb(0 0 0 / 0.45), 0 20px 48px rgb(0 0 0 / 0.5);
+    --argus-overlay: rgb(0 0 0 / 0.6);
+  }
+}
+
+/* High contrast: no reliance on shadow or tint; boundaries are always drawn. */
+:root[data-argus-mode="high-contrast"] {
+  color-scheme: dark;
+  --argus-color-bg: #000000;
+  --argus-color-surface: #000000;
+  --argus-color-surface-sunken: #000000;
+  --argus-color-surface-raised: #0d0d0d;
+  --argus-color-surface-hover: #1f1f1f;
+  --argus-color-fg: #ffffff;
+  --argus-color-fg-muted: #e6e6e6;
+  --argus-color-fg-subtle: #d0d0d0;
+  --argus-color-border: #bfbfbf;
+  --argus-color-border-strong: #ffffff;
+  --argus-color-accent: #ffd60a;
+  --argus-color-accent-hover: #ffe14d;
+  --argus-color-on-accent: #000000;
+  --argus-color-accent-text: #ffd60a;
+  --argus-color-accent-subtle: #262000;
+  --argus-color-focus: #ffd60a;
+  --argus-color-info: #8fdcff;
+  --argus-color-info-subtle: #001a26;
+  --argus-color-info-solid: #8fdcff;
+  --argus-color-success: #8ff0b0;
+  --argus-color-success-subtle: #001f0d;
+  --argus-color-success-solid: #8ff0b0;
+  --argus-color-warning: #ffe066;
+  --argus-color-warning-subtle: #261f00;
+  --argus-color-warning-solid: #ffe066;
+  --argus-color-high: #ffb27a;
+  --argus-color-high-subtle: #2b1300;
+  --argus-color-high-solid: #ffb27a;
+  --argus-color-critical: #ff9c94;
+  --argus-color-critical-subtle: #2e0300;
+  --argus-color-critical-solid: #ff9c94;
+  --argus-shadow-sm: none;
+  --argus-shadow-md: 0 0 0 1px #ffffff;
+  --argus-shadow-lg: 0 0 0 2px #ffffff;
+  --argus-overlay: rgb(0 0 0 / 0.8);
+}
+
+:root[data-argus-density="compact"] {
+  --argus-control-h: 1.875rem;
+  --argus-control-h-sm: 1.5rem;
+  --argus-control-h-lg: 2.25rem;
+  --argus-control-px: 0.5rem;
+  --argus-row-h: 1.875rem;
+  --argus-cell-px: 0.5rem;
+  --argus-cell-text: 0.8125rem;
+  --argus-panel-p: 0.75rem;
+  --argus-gap: 0.625rem;
+  --argus-page-p: 1rem;
+  --argus-topbar-h: 3rem;
+}
+
+/* Coarse pointers (tablets, phones): keep touch targets at least 44px regardless of density. */
+@media (pointer: coarse) {
+  :root,
+  :root[data-argus-density] {
+    --argus-control-h: 2.75rem;
+    --argus-control-h-sm: 2.75rem;
+    --argus-row-h: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --argus-duration-fast: 0ms;
+    --argus-duration-base: 0ms;
+    --argus-duration-slow: 0ms;
+  }
+}

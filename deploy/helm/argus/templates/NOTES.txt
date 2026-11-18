@@ -1,0 +1,22 @@
+ArgusOS chart {{ .Chart.Version }} rendered for release {{ .Release.Name }}.
+
+This chart creates application workload resources only. It does NOT provision or
+verify PostgreSQL/PostGIS, NATS JetStream, S3, ElectricSQL, Martin, OIDC, DNS,
+TLS certificates, backups, observability backends, or application migrations.
+
+The referenced container images and health endpoints must exist before install.
+The pre-created Secret {{ .Values.secrets.existingSecret }} must contain the
+runtime credentials documented in deploy/README.md.
+
+{{- if .Values.ingress.enabled }}
+Ingress hosts:
+{{- range .Values.ingress.hosts }}
+  - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ .paths.web }}
+{{- end }}
+{{- else }}
+Ingress is disabled. Services are ClusterIP; expose them through an explicitly
+configured, TLS-terminating ingress or gateway with WebSocket support.
+{{- end }}
+
+Production readiness remains unverified until migrations, RLS, tenant isolation,
+backup/restore, rolling upgrades, and the documented realtime load tests pass.

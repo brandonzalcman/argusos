@@ -1,0 +1,96 @@
+{{- $root := . -}}
+{{- range $name, $workload := .Values.workloads }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "argus.fullname" $root }}-{{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "argus.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  {{- if not $workload.autoscaling.enabled }}
+  replicas: {{ $workload.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "argus.selectorLabels" (dict "root" $root "name" $name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "argus.selectorLabels" (dict "root" $root "name" $name) | nindent 8 }}
+        {{- with $root.Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $root.Template.BasePath "/configmap.yaml") $root | sha256sum }}
+        {{- with $root.Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if $root.Values.serviceAccount.create }}
+      serviceAccountName: {{ include "argus.fullname" $root }}-{{ $name }}
+      {{- else }}
+      serviceAccountName: default
+      {{- end }}
+      automountServiceAccountToken: {{ $root.Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+        {{- toYaml $root.Values.podSecurityContext | nindent 8 }}
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 30
+      {{- with $root.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "argus.image" $workload.image | quote }}
+          imagePullPolicy: {{ $workload.image.pullPolicy }}
+          securityContext:
+            {{- toYaml $root.Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ $workload.containerPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "argus.fullname" $root }}-runtime
+            {{- if ne $name "web" }}
+            - secretRef:
+                name: {{ include "argus.secretName" (dict "root" $root "name" $name) }}
+            {{- end }}
+          {{- with $workload.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ $workload.probes.liveness.path }}
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: {{ $workload.probes.liveness.path }}
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: {{ $workload.probes.readiness.path }}
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12
+          resources:
+            {{- toYaml $workload.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+{{- end }}

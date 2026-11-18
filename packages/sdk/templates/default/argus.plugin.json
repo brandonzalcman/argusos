@@ -1,0 +1,10 @@
+{
+  "id": "{{pluginId}}",
+  "version": "0.0.0",
+  "apiVersion": "1.0",
+  "displayName": "{{pluginDisplayName}}",
+  "iframeEntry": null,
+  "serverEntry": "./dist/src/plugin.js",
+  "requestedCapabilities": ["feed:ingest"],
+  "requestedEgressOrigins": []
+}

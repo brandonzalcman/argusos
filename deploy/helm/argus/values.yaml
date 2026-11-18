@@ -1,0 +1,246 @@
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+podAnnotations: {}
+podLabels: {}
+
+# Required placeholders. The chart validates presence but does not create,
+# migrate, back up, or verify connectivity to any external service.
+external:
+  publicWebUrl: ""
+  publicApiUrl: ""
+  publicRealtimeUrl: ""
+  publicElectricUrl: ""
+  publicTilesUrl: ""
+  postgresql:
+    host: ""
+    port: 5432
+    database: argus
+    sslMode: require
+  nats:
+    host: ""
+    port: 4222
+    tlsEnabled: true
+  objectStorage:
+    endpoint: ""
+    region: ""
+    bucket: argus-attachments
+    forcePathStyle: false
+
+# production=true makes rendering fail unless every workload sets an immutable
+# image.digest (sha256:...). Use it for every real environment.
+production: false
+
+# One pre-created Secret PER workload (no shared credential bag). Keys per Secret
+# are documented in deploy/README.md. The web Deployment mounts no Secret.
+secrets:
+  api:
+    existingSecret: ""
+  realtime:
+    existingSecret: ""
+  worker:
+    existingSecret: ""
+
+# Default-deny NetworkPolicy plus explicit allows. Requires a CNI that enforces
+# NetworkPolicy. Egress to external services is allowed only when the matching
+# "to" peer list is non-empty (an empty list renders no rule, i.e. stays denied).
+networkPolicy:
+  enabled: true
+  dns:
+    namespaceLabels:
+      kubernetes.io/metadata.name: kube-system
+    podLabels:
+      k8s-app: kube-dns
+  # NetworkPolicyPeer list for the ingress controller / gateway pods that may reach
+  # web, api and realtime. Required when ingress.enabled is true. Example:
+  #   - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: ingress-nginx } }
+  ingressFrom: []
+  egress:
+    postgresql: { to: [], port: 5432 } # port is taken from external.postgresql.port
+    nats: { to: [], port: 4222 } # port is taken from external.nats.port
+    objectStorage: { to: [], port: 443 }
+    electric: { to: [], port: 443 } # api only: server-side shape proxy
+    otlp: { to: [], port: 4318 }
+
+observability:
+  # Optional external OTLP/HTTP endpoint. No collector is installed by this chart.
+  otlpEndpoint: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  # Workload identity can be added later without granting Kubernetes API access.
+  automountServiceAccountToken: false
+
+# Compatible with the Pod Security Standards "restricted" profile. Label the
+# namespace pod-security.kubernetes.io/enforce=restricted.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+  capabilities:
+    drop: [ALL]
+
+workloads:
+  web:
+    image:
+      repository: ghcr.io/argusos/web
+      tag: "0.0.0" # ignored when digest is set; never "latest"
+      digest: ""
+      pullPolicy: IfNotPresent
+    replicaCount: 2
+    containerPort: 3000
+    service:
+      enabled: true
+      type: ClusterIP
+      port: 80
+    probes:
+      liveness:
+        path: /healthz
+      readiness:
+        path: /healthz
+    # Unmeasured starting points; replace from load-test data (TODO(verify)).
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: "250m"
+        memory: 128Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 80
+    pdb:
+      enabled: true
+      minAvailable: 1
+    env: []
+  api:
+    image:
+      repository: ghcr.io/argusos/api
+      tag: "0.0.0"
+      digest: ""
+      pullPolicy: IfNotPresent
+    replicaCount: 2
+    containerPort: 3001
+    service:
+      enabled: true
+      type: ClusterIP
+      port: 80
+    probes:
+      liveness:
+        path: /health/live
+      readiness:
+        path: /health/ready
+    # Unmeasured starting points; replace from load-test data (TODO(verify)).
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 512Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 80
+    pdb:
+      enabled: true
+      minAvailable: 1
+    env: []
+  realtime:
+    image:
+      repository: ghcr.io/argusos/realtime
+      tag: "0.0.0"
+      digest: ""
+      pullPolicy: IfNotPresent
+    replicaCount: 2
+    containerPort: 3002
+    service:
+      enabled: true
+      type: ClusterIP
+      port: 80
+    probes:
+      liveness:
+        path: /health/live
+      readiness:
+        path: /health/ready
+    # Unmeasured starting points; replace from load-test data (TODO(verify)).
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 512Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 80
+    pdb:
+      enabled: true
+      minAvailable: 1
+    env: []
+  worker:
+    image:
+      repository: ghcr.io/argusos/worker
+      tag: "0.0.0"
+      digest: ""
+      pullPolicy: IfNotPresent
+    replicaCount: 1
+    containerPort: 9464
+    service:
+      enabled: false
+      type: ClusterIP
+      port: 80
+    probes:
+      liveness:
+        path: /health/live
+      readiness:
+        path: /health/ready
+    # Unmeasured starting points; replace from load-test data (TODO(verify)).
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 512Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 4
+      targetCPUUtilizationPercentage: 80
+    pdb:
+      enabled: true
+      minAvailable: 1
+    env: []
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: argus.example.invalid
+      paths:
+        web: /
+        api: /api
+        realtime: /realtime
+  tls: []
+
+# Additional Deployment volume configuration is intentionally omitted until
+# workloads declare concrete persistent or scratch-storage requirements.

@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "lib": ["ES2024", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@argus/sdk": ["./src/index.ts"],
+      "@argus/sdk/server": ["./src/server/plugin.ts"]
+    },
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "templates/**/*.ts"]
+}

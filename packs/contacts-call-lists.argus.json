@@ -1,0 +1,23 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "contacts-call-lists",
+  "name": "Contacts and Call Lists",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for future tenant-scoped contacts and explicitly shared call lists.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.tenant-global",
+    "fields.contact-points",
+    "field-security.personal-data",
+    "boards.list-detail-form"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

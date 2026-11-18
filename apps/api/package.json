@@ -1,0 +1,42 @@
+{
+  "name": "@argus/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node dist/main.js",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate": "tsx src/scripts/migrate.ts"
+  },
+  "dependencies": {
+    "@argus/expr": "workspace:*",
+    "@argus/schema": "workspace:*",
+    "@electric-sql/pglite": "catalog:",
+    "@fastify/cors": "catalog:",
+    "@fastify/helmet": "catalog:",
+    "@trpc/server": "catalog:",
+    "better-auth": "catalog:",
+    "drizzle-orm": "catalog:",
+    "fastify": "catalog:",
+    "postgres": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@trpc/client": "catalog:",
+    "@types/node": "catalog:",
+    "drizzle-kit": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

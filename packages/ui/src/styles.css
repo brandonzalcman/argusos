@@ -1,0 +1,257 @@
+@import "@fontsource-variable/inter/wght.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Scan @argus/ui sources (src in Storybook, dist when consumed by apps). */
+@source "./";
+
+/*
+ * Token-only palette: Tailwind's default colours are removed so every surface uses an ArgusOS
+ * role (bg-surface, text-fg-muted, border-border, bg-critical-subtle ...). See docs/ui.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-canvas: var(--argus-color-bg);
+  --color-surface: var(--argus-color-surface);
+  --color-surface-sunken: var(--argus-color-surface-sunken);
+  --color-surface-raised: var(--argus-color-surface-raised);
+  --color-surface-hover: var(--argus-color-surface-hover);
+  --color-fg: var(--argus-color-fg);
+  --color-fg-muted: var(--argus-color-fg-muted);
+  --color-fg-subtle: var(--argus-color-fg-subtle);
+  --color-border: var(--argus-color-border);
+  --color-border-strong: var(--argus-color-border-strong);
+  --color-accent: var(--argus-color-accent);
+  --color-accent-hover: var(--argus-color-accent-hover);
+  --color-on-accent: var(--argus-color-on-accent);
+  --color-accent-text: var(--argus-color-accent-text);
+  --color-accent-subtle: var(--argus-color-accent-subtle);
+  --color-focus: var(--argus-color-focus);
+  --color-overlay: var(--argus-overlay);
+
+  --color-info: var(--argus-color-info);
+  --color-info-subtle: var(--argus-color-info-subtle);
+  --color-info-solid: var(--argus-color-info-solid);
+  --color-success: var(--argus-color-success);
+  --color-success-subtle: var(--argus-color-success-subtle);
+  --color-success-solid: var(--argus-color-success-solid);
+  --color-warning: var(--argus-color-warning);
+  --color-warning-subtle: var(--argus-color-warning-subtle);
+  --color-warning-solid: var(--argus-color-warning-solid);
+  --color-high: var(--argus-color-high);
+  --color-high-subtle: var(--argus-color-high-subtle);
+  --color-high-solid: var(--argus-color-high-solid);
+  --color-critical: var(--argus-color-critical);
+  --color-critical-subtle: var(--argus-color-critical-subtle);
+  --color-critical-solid: var(--argus-color-critical-solid);
+
+  --font-sans: var(--argus-font-sans);
+  --font-mono: var(--argus-font-mono);
+
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.125rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.25rem;
+  --text-md: 1rem;
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
+
+  --radius-sm: var(--argus-radius-sm);
+  --radius-md: var(--argus-radius-md);
+  --radius-lg: var(--argus-radius-lg);
+
+  --shadow-sm: var(--argus-shadow-sm);
+  --shadow-md: var(--argus-shadow-md);
+  --shadow-lg: var(--argus-shadow-lg);
+
+  --ease-out: var(--argus-ease-out);
+
+  --animate-argus-fade-in: argus-fade-in var(--argus-duration-base) var(--argus-ease-out);
+  --animate-argus-pop-in: argus-pop-in var(--argus-duration-base) var(--argus-ease-out);
+  --animate-argus-slide-up: argus-slide-up var(--argus-duration-slow) var(--argus-ease-out);
+  --animate-argus-pulse: argus-pulse 1.6s ease-in-out infinite;
+
+  @keyframes argus-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes argus-pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(2px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes argus-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes argus-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--argus-color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--argus-color-bg);
+    color: var(--argus-color-fg);
+    font-family: var(--argus-font-sans);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-feature-settings:
+      "cv11" 1,
+      "ss01" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Figures and times line up in every table, KPI and timeline. */
+  time,
+  table,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Sensible defaults for bare headings; component classes override these. */
+  h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  h2 {
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    font-weight: 600;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--argus-color-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--argus-color-accent-subtle);
+    color: var(--argus-color-fg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every component animation */
+      animation-duration: 0.01ms !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every component animation */
+      animation-iteration-count: 1 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every component animation */
+      transition-duration: 0.01ms !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every component animation */
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+ * Legacy helper classes kept for pages written against the first scaffold. Prefer components
+ * (Panel, Stack via Tailwind `grid gap-*`) in new code.
+ */
+@layer components {
+  .argus-panel {
+    border: 1px solid var(--argus-color-border);
+    border-radius: var(--argus-radius-md);
+    padding: var(--argus-panel-p);
+    background: var(--argus-color-surface);
+  }
+
+  .argus-muted {
+    color: var(--argus-color-fg-muted);
+  }
+
+  .argus-stack {
+    display: grid;
+    gap: var(--argus-gap);
+  }
+
+  .argus-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--argus-gap) / 2);
+  }
+
+  .argus-skip-link {
+    position: fixed;
+    inset-inline-start: 0.75rem;
+    inset-block-start: -5rem;
+    z-index: var(--argus-z-skiplink);
+    padding: 0.5rem 0.875rem;
+    border-radius: var(--argus-radius-sm);
+    background: var(--argus-color-accent);
+    color: var(--argus-color-on-accent);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .argus-skip-link:focus {
+    inset-block-start: 0.75rem;
+  }
+}

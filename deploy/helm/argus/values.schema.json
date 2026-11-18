@@ -1,0 +1,674 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "ArgusOS Helm values",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "external",
+    "secrets",
+    "serviceAccount",
+    "workloads",
+    "ingress",
+    "networkPolicy"
+  ],
+  "properties": {
+    "nameOverride": {
+      "type": "string"
+    },
+    "fullnameOverride": {
+      "type": "string"
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "podAnnotations": {
+      "type": "object"
+    },
+    "podLabels": {
+      "type": "object"
+    },
+    "external": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publicWebUrl",
+        "publicApiUrl",
+        "publicRealtimeUrl",
+        "publicElectricUrl",
+        "publicTilesUrl",
+        "postgresql",
+        "nats",
+        "objectStorage"
+      ],
+      "properties": {
+        "publicWebUrl": {
+          "type": "string"
+        },
+        "publicApiUrl": {
+          "type": "string"
+        },
+        "publicRealtimeUrl": {
+          "type": "string"
+        },
+        "publicElectricUrl": {
+          "type": "string"
+        },
+        "publicTilesUrl": {
+          "type": "string"
+        },
+        "postgresql": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "host",
+            "port",
+            "database",
+            "sslMode"
+          ],
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "port": {
+              "$ref": "#/$defs/port"
+            },
+            "database": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sslMode": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "nats": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "host",
+            "port",
+            "tlsEnabled"
+          ],
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "port": {
+              "$ref": "#/$defs/port"
+            },
+            "tlsEnabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        "objectStorage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "endpoint",
+            "region",
+            "bucket",
+            "forcePathStyle"
+          ],
+          "properties": {
+            "endpoint": {
+              "type": "string"
+            },
+            "region": {
+              "type": "string"
+            },
+            "bucket": {
+              "type": "string",
+              "minLength": 1
+            },
+            "forcePathStyle": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "api",
+        "realtime",
+        "worker"
+      ],
+      "properties": {
+        "api": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "existingSecret"
+          ],
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            }
+          }
+        },
+        "realtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "existingSecret"
+          ],
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            }
+          }
+        },
+        "worker": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "existingSecret"
+          ],
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "otlpEndpoint"
+      ],
+      "properties": {
+        "otlpEndpoint": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "create",
+        "annotations",
+        "automountServiceAccountToken"
+      ],
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "automountServiceAccountToken": {
+          "type": "boolean"
+        }
+      }
+    },
+    "podSecurityContext": {
+      "type": "object"
+    },
+    "containerSecurityContext": {
+      "type": "object"
+    },
+    "workloads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "web",
+        "api",
+        "realtime",
+        "worker"
+      ],
+      "properties": {
+        "web": {
+          "$ref": "#/$defs/workload"
+        },
+        "api": {
+          "$ref": "#/$defs/workload"
+        },
+        "realtime": {
+          "$ref": "#/$defs/workload"
+        },
+        "worker": {
+          "$ref": "#/$defs/workload"
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "className",
+        "annotations",
+        "hosts",
+        "tls"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "className": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "host",
+              "paths"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "minLength": 1
+              },
+              "paths": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "web",
+                  "api",
+                  "realtime"
+                ],
+                "properties": {
+                  "web": {
+                    "$ref": "#/$defs/path"
+                  },
+                  "api": {
+                    "$ref": "#/$defs/path"
+                  },
+                  "realtime": {
+                    "$ref": "#/$defs/path"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tls": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "production": {
+      "type": "boolean"
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "dns",
+        "ingressFrom",
+        "egress"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "dns": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "namespaceLabels",
+            "podLabels"
+          ],
+          "properties": {
+            "namespaceLabels": {
+              "type": "object"
+            },
+            "podLabels": {
+              "type": "object"
+            }
+          }
+        },
+        "ingressFrom": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "egress": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "postgresql",
+            "nats",
+            "objectStorage",
+            "electric",
+            "otlp"
+          ],
+          "properties": {
+            "postgresql": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to",
+                "port"
+              ],
+              "properties": {
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "port": {
+                  "$ref": "#/$defs/port"
+                }
+              }
+            },
+            "nats": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to",
+                "port"
+              ],
+              "properties": {
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "port": {
+                  "$ref": "#/$defs/port"
+                }
+              }
+            },
+            "objectStorage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to",
+                "port"
+              ],
+              "properties": {
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "port": {
+                  "$ref": "#/$defs/port"
+                }
+              }
+            },
+            "electric": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to",
+                "port"
+              ],
+              "properties": {
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "port": {
+                  "$ref": "#/$defs/port"
+                }
+              }
+            },
+            "otlp": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to",
+                "port"
+              ],
+              "properties": {
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "port": {
+                  "$ref": "#/$defs/port"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "workload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "replicaCount",
+        "containerPort",
+        "service",
+        "probes",
+        "resources",
+        "autoscaling",
+        "pdb",
+        "env"
+      ],
+      "properties": {
+        "image": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "tag",
+            "digest",
+            "pullPolicy"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^$|^sha256:[a-f0-9]{64}$"
+            },
+            "pullPolicy": {
+              "enum": [
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
+            }
+          }
+        },
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "containerPort": {
+          "$ref": "#/$defs/port"
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "type",
+            "port"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "type": {
+              "enum": [
+                "ClusterIP",
+                "NodePort",
+                "LoadBalancer"
+              ]
+            },
+            "port": {
+              "$ref": "#/$defs/port"
+            }
+          }
+        },
+        "probes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "liveness",
+            "readiness"
+          ],
+          "properties": {
+            "liveness": {
+              "$ref": "#/$defs/probe"
+            },
+            "readiness": {
+              "$ref": "#/$defs/probe"
+            }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "required": [
+            "requests",
+            "limits"
+          ],
+          "properties": {
+            "requests": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cpu",
+                "memory"
+              ],
+              "properties": {
+                "cpu": {
+                  "type": [
+                    "string",
+                    "number"
+                  ]
+                },
+                "memory": {
+                  "type": "string"
+                }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cpu",
+                "memory"
+              ],
+              "properties": {
+                "cpu": {
+                  "type": [
+                    "string",
+                    "number"
+                  ]
+                },
+                "memory": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "autoscaling": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "minReplicas",
+            "maxReplicas",
+            "targetCPUUtilizationPercentage"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minReplicas": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxReplicas": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "targetCPUUtilizationPercentage": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "pdb": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "minAvailable"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minAvailable": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/path"
+        }
+      }
+    }
+  }
+}

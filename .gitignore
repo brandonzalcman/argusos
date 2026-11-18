@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.npm-cache/
+
+# Builds and caches
+dist/
+build/
+.turbo/
+.vite/
+.storybook-static/
+coverage/
+*.tsbuildinfo
+
+# Runtime and local state
+.env
+.env.*
+!.env.example
+!apps/web/.env.demo
+*.log
+.DS_Store
+.argus/
+data/
+
+# Test output
+playwright-report/
+test-results/
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Mobile
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+
+# OS / archives
+Thumbs.db
+*.tgz

@@ -1,0 +1,24 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "asset-vehicle-tracking",
+  "name": "Asset and Vehicle Tracking",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for future asset state, vehicle assignment and live location tracking.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.tenant-global",
+    "fields.location",
+    "feeds.automatic-vehicle-location",
+    "boards.live-map",
+    "field-security.location-history"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

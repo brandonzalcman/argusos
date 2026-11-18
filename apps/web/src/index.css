@@ -1,0 +1,5 @@
+/* ArgusOS design system: fonts, tokens (light/dark/high-contrast, density) and Tailwind theme. */
+@import "@argus/ui/styles.css";
+
+/* Let Tailwind see utility classes used in apps/web sources. */
+@source "./";

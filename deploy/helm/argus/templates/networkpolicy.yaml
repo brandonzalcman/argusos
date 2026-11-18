@@ -1,0 +1,155 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $root := . -}}
+{{- $np := .Values.networkPolicy -}}
+{{- $fullname := include "argus.fullname" . -}}
+{{- /*
+Default deny for every pod of this release, then additive allows:
+  1. DNS egress for all pods,
+  2. ingress-controller -> web/api/realtime,
+  3. realtime <-> api (TODO(verify): confirm the call direction with app owners),
+  4. per-dependency egress, rendered only when a peer list is configured. An
+     egress rule without `to` would allow ALL destinations, so empty lists are
+     skipped and the dependency stays unreachable.
+TODO(verify): requires a CNI that enforces NetworkPolicy; not exercised here.
+*/ -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-default-deny
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "argus.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-allow-dns
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "argus.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml $np.dns.namespaceLabels | nindent 14 }}
+          podSelector:
+            matchLabels:
+              {{- toYaml $np.dns.podLabels | nindent 14 }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+{{- if $np.ingressFrom }}
+{{- range $name := list "web" "api" "realtime" }}
+{{- $workload := index $root.Values.workloads $name }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-{{ $name }}-from-ingress
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "argus.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "argus.selectorLabels" (dict "root" $root "name" $name) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        {{- toYaml $np.ingressFrom | nindent 8 }}
+      ports:
+        - protocol: TCP
+          port: {{ $workload.containerPort }}
+---
+{{- end }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-realtime-to-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "argus.selectorLabels" (dict "root" $root "name" "realtime") | nindent 6 }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "argus.selectorLabels" (dict "root" $root "name" "api") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.workloads.api.containerPort }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-api-from-realtime
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "argus.selectorLabels" (dict "root" $root "name" "api") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "argus.selectorLabels" (dict "root" $root "name" "realtime") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.workloads.api.containerPort }}
+{{- $targets := dict "postgresql" (list "api" "realtime" "worker") "nats" (list "api" "realtime" "worker") "objectStorage" (list "api" "worker") "electric" (list "api") "otlp" (list "api" "realtime" "worker") }}
+{{- range $dependency, $components := $targets }}
+{{- $cfg := index $np.egress $dependency }}
+{{- if $cfg.to }}
+{{- $port := $cfg.port }}
+{{- if eq $dependency "postgresql" }}{{- $port = $root.Values.external.postgresql.port }}{{- end }}
+{{- if eq $dependency "nats" }}{{- $port = $root.Values.external.nats.port }}{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-egress-{{ $dependency | kebabcase }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "argus.labels" $root | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "argus.name" $root }}
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: {{ toJson $components }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        {{- toYaml $cfg.to | nindent 8 }}
+      ports:
+        - protocol: TCP
+          port: {{ $port }}
+{{- end }}
+{{- end }}
+{{- end }}

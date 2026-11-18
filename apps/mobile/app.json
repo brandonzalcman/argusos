@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "ArgusOS Responder Scaffold",
+    "slug": "argusos-responder-scaffold",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "argusos",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "os.argus.responder.scaffold",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Placeholder text for a future responder photo-capture implementation.",
+        "NSLocationWhenInUseUsageDescription": "Placeholder text for a future incident-scoped location-capture implementation."
+      }
+    },
+    "android": {
+      "package": "os.argus.responder.scaffold"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "status": "scaffold-only",
+      "nativeCapabilitiesImplemented": false
+    }
+  }
+}

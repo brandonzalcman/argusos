@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: argus-otel-collector
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+# TODO(implementation): scrape authenticated application metrics and alert on
+# stale sync, replication slot growth, JetStream lag, and missed latency SLOs.

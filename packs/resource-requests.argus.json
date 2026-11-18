@@ -1,0 +1,23 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "resource-requests",
+  "name": "Resource Requests",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for future resource requests and an auditable approval chain.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.incident-scoped",
+    "boards.list-detail-form",
+    "workflows.approvals",
+    "audit.record-history"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

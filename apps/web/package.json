@@ -1,0 +1,41 @@
+{
+  "name": "@argus/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:demo": "vite --mode demo",
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@argus/blocks": "workspace:*",
+    "@argus/code-editor": "workspace:*",
+    "@argus/ddl-engine": "workspace:*",
+    "@argus/expr": "workspace:*",
+    "@argus/field-types": "workspace:*",
+    "@argus/maps": "workspace:*",
+    "@argus/schema": "workspace:*",
+    "@argus/sdk": "workspace:*",
+    "@argus/ui": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@xyflow/react": "catalog:",
+    "react": "catalog:",
+    "zod": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

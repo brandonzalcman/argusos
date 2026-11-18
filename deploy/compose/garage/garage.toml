@@ -1,0 +1,21 @@
+# Garage v2.5.0 single-node local development only. Replication factor 1 has no
+# redundancy. Use at least three nodes/zones plus TLS and rotated secrets in production.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "garage:3901"
+# Deliberately public placeholder, like the other local-only Compose credentials.
+rpc_secret = "0000000000000000000000000000000000000000000000000000000000000001"
+
+[s3_api]
+api_bind_addr = "[::]:3900"
+s3_region = "garage"
+public_endpoint = "http://localhost:9000"
+public_endpoint_path_style = true
+
+# Do not enable s3_web or the admin listener for this local dependency topology.
+# --single-node creates the layout; --default-bucket creates the configured private
+# bucket and access key. Anonymous object access is not enabled by this setup.

@@ -1,0 +1,14 @@
+# Local development only. Auto-discovery is disabled so tenant or incident data
+# cannot become a public tile endpoint merely because Martin has SELECT access.
+# The connection string is NOT stored here: Martin reads DATABASE_URL from its
+# environment, which docker-compose.yaml builds from ARGUS_MARTIN_PASSWORD.
+listen_addresses: "0.0.0.0:3000"
+postgres:
+  auto_publish:
+    tables: false
+    functions: false
+
+# TODO(implementation): configure explicitly authorized, parameterized tile
+# functions after tenant, incident, position, and field-level RLS policies exist.
+# TODO(verify): confirm Martin 1.16 picks up DATABASE_URL when the config file's
+# postgres section has no connection_string.

@@ -1,0 +1,23 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "position-log-shift-handover",
+  "name": "Position Log / Shift Handover",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for future position activity logs and signed shift handovers.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.incident-scoped",
+    "positions.scoped-authoring",
+    "boards.list-detail-form",
+    "audit.position-attribution"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

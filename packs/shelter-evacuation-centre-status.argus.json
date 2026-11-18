@@ -1,0 +1,23 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "shelter-evacuation-centre-status",
+  "name": "Shelter / Evacuation Centre Status",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for future shelter capacity and evacuation-centre status boards.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.incident-scoped",
+    "fields.location",
+    "boards.list-detail-map",
+    "field-security.sensitive-locations"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "format": "argus.board-pack",
+  "schemaVersion": "1.0.0-draft",
+  "id": "situation-report",
+  "name": "Situation Report",
+  "version": "0.0.0",
+  "description": "Non-importable placeholder for a future versioned report assembled from authorized board data.",
+  "status": "scaffold-not-importable",
+  "dependencies": [],
+  "requiredCapabilities": [
+    "tables.incident-scoped",
+    "boards.printable-report",
+    "boards.dependency-resolution",
+    "audit.signed-export"
+  ],
+  "optionalCapabilities": [],
+  "definitions": {
+    "tables": [],
+    "boards": [],
+    "workflows": [],
+    "menus": []
+  }
+}

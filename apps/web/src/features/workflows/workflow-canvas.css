@@ -1,0 +1,103 @@
+/* Maps React Flow's CSS variables onto ArgusOS role tokens so the canvas follows every theme. */
+.argus-flow {
+  --xy-background-color: var(--argus-color-surface-sunken);
+  --xy-background-pattern-dots-color-default: var(--argus-color-border-strong);
+  --xy-edge-stroke-default: var(--argus-color-fg-muted);
+  --xy-edge-stroke-selected-default: var(--argus-color-accent);
+  --xy-edge-label-color-default: var(--argus-color-fg);
+  --xy-edge-label-background-color-default: var(--argus-color-surface);
+  --xy-handle-background-color-default: var(--argus-color-surface);
+  --xy-handle-border-color-default: var(--argus-color-fg-muted);
+  --xy-minimap-background-color-default: var(--argus-color-surface);
+  --xy-minimap-mask-background-color-default: rgb(0 0 0 / 0.12);
+  --xy-controls-button-background-color-default: var(--argus-color-surface);
+  --xy-controls-button-background-color-hover-default: var(--argus-color-surface-hover);
+  --xy-controls-button-color-default: var(--argus-color-fg);
+  --xy-controls-button-border-color-default: var(--argus-color-border);
+  --xy-attribution-background-color-default: var(--argus-color-surface);
+  --xy-node-boxshadow-selected-default: none;
+  font-family: var(--argus-font-sans);
+}
+
+.argus-flow .react-flow__node {
+  font-size: 0.8125rem;
+  cursor: grab;
+}
+
+.argus-flow .react-flow__node:focus-visible {
+  outline: 2px solid var(--argus-color-focus);
+  outline-offset: 2px;
+  border-radius: var(--argus-radius-md);
+}
+
+.argus-flow .argus-flow-handle {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-width: 2px;
+}
+
+.argus-flow .argus-flow-handle:hover,
+.argus-flow .argus-flow-handle.connectingto {
+  background: var(--argus-color-accent);
+  border-color: var(--argus-color-accent);
+}
+
+.argus-flow .react-flow__edge-textbg {
+  stroke: var(--argus-color-border);
+}
+
+.argus-flow .react-flow__edge-text {
+  font-family: var(--argus-font-mono);
+  font-size: 0.75rem;
+}
+
+.argus-flow .react-flow__edge-path {
+  stroke-width: 1.75;
+}
+
+.argus-flow .react-flow__arrowhead polyline {
+  stroke: var(--argus-color-fg-muted);
+  fill: var(--argus-color-fg-muted);
+}
+
+.argus-flow .argus-flow-edge-failed .react-flow__edge-path {
+  stroke: var(--argus-color-critical);
+  stroke-dasharray: 6 4;
+}
+
+.argus-flow .argus-flow-edge-implicit .react-flow__edge-path {
+  stroke-dasharray: 2 4;
+}
+
+.argus-flow .react-flow__controls-button {
+  width: 2rem;
+  height: 2rem;
+}
+
+.argus-flow .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.argus-flow .react-flow__controls-button:focus-visible,
+.argus-flow .react-flow__minimap:focus-visible {
+  outline: 2px solid var(--argus-color-focus);
+  outline-offset: -2px;
+}
+
+.argus-flow .argus-flow-minimap-trigger {
+  fill: var(--argus-color-accent);
+}
+
+.argus-flow .argus-flow-minimap-condition {
+  fill: var(--argus-color-warning-solid);
+}
+
+.argus-flow .argus-flow-minimap-action {
+  fill: var(--argus-color-fg-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .argus-flow .react-flow__viewport {
+    transition: none !important;
+  }
+}

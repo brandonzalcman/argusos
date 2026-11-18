@@ -1,0 +1,30 @@
+{{- $_ := include "argus.validateExternalDependencies" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "argus.fullname" . }}-runtime
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+data:
+  ARGUS_ENV: production
+  PUBLIC_WEB_URL: {{ .Values.external.publicWebUrl | quote }}
+  PUBLIC_API_URL: {{ .Values.external.publicApiUrl | quote }}
+  PUBLIC_REALTIME_URL: {{ .Values.external.publicRealtimeUrl | quote }}
+  PUBLIC_ELECTRIC_URL: {{ .Values.external.publicElectricUrl | quote }}
+  PUBLIC_TILES_URL: {{ .Values.external.publicTilesUrl | quote }}
+  BETTER_AUTH_URL: {{ .Values.external.publicApiUrl | quote }}
+  DATABASE_HOST: {{ .Values.external.postgresql.host | quote }}
+  DATABASE_PORT: {{ .Values.external.postgresql.port | quote }}
+  DATABASE_NAME: {{ .Values.external.postgresql.database | quote }}
+  DATABASE_SSL_MODE: {{ .Values.external.postgresql.sslMode | quote }}
+  NATS_HOST: {{ .Values.external.nats.host | quote }}
+  NATS_PORT: {{ .Values.external.nats.port | quote }}
+  NATS_TLS: {{ .Values.external.nats.tlsEnabled | quote }}
+  S3_ENDPOINT: {{ .Values.external.objectStorage.endpoint | quote }}
+  S3_REGION: {{ .Values.external.objectStorage.region | quote }}
+  S3_BUCKET: {{ .Values.external.objectStorage.bucket | quote }}
+  S3_FORCE_PATH_STYLE: {{ .Values.external.objectStorage.forcePathStyle | quote }}
+  {{- with .Values.observability.otlpEndpoint }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ . | quote }}
+  {{- end }}

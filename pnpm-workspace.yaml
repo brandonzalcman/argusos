@@ -1,0 +1,117 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# All direct dependency versions are pinned here. Use `catalog:` in workspace
+# manifests and let Renovate propose upgrades from one place.
+catalog:
+  "@biomejs/biome": "2.6.8"
+  "@codemirror/autocomplete": "6.20.4"
+  "@codemirror/commands": "6.11.1"
+  "@codemirror/lang-javascript": "6.2.5"
+  "@codemirror/lang-json": "6.0.2"
+  "@codemirror/language": "6.13.1"
+  "@codemirror/lint": "6.9.7"
+  "@codemirror/search": "6.7.2"
+  "@codemirror/state": "6.7.6"
+  "@codemirror/view": "6.43.15"
+  "@docusaurus/core": "3.10.2"
+  "@docusaurus/module-type-aliases": "3.10.2"
+  "@docusaurus/plugin-content-docs": "3.10.2"
+  "@docusaurus/preset-classic": "3.10.2"
+  "@docusaurus/tsconfig": "3.10.2"
+  "@docusaurus/types": "3.10.2"
+  "@electric-sql/pglite": "0.5.15"
+  "@fastify/cors": "11.4.0"
+  "@fastify/helmet": "13.2.0"
+  "@fontsource-variable/inter": "5.3.0"
+  "@fontsource-variable/jetbrains-mono": "5.3.0"
+  "@lezer/highlight": "1.2.5"
+  "@nats-io/transport-node": "3.5.0"
+  "@opentelemetry/api": "1.10.0"
+  "@playwright/test": "1.65.1"
+  "@storybook/addon-a11y": "10.6.7"
+  "@storybook/react-vite": "10.6.7"
+  "@tailwindcss/vite": "4.3.5"
+  "@tanstack/react-query": "5.108.0"
+  "@tanstack/react-router": "1.170.46"
+  "@testcontainers/postgresql": "12.2.1"
+  "@trpc/client": "11.24.0"
+  "@trpc/server": "11.24.0"
+  "@types/geojson": "7946.0.16"
+  "@types/node": "26.6.6"
+  "@types/react": "19.3.0"
+  "@types/react-dom": "19.3.0"
+  "@types/ws": "8.18.2"
+  "@xyflow/react": "12.12.1"
+  "@vitejs/plugin-react": "6.3.0"
+  "better-auth": "1.7.25"
+  "clsx": "2.1.1"
+  "drizzle-kit": "0.31.11"
+  "drizzle-orm": "0.45.4"
+  "expo": "58.0.26"
+  "expo-constants": "58.0.16"
+  "expo-linking": "58.0.17"
+  "expo-router": "58.0.32"
+  "expo-status-bar": "58.0.5"
+  "fastify": "5.12.8"
+  "graphile-worker": "0.18.0"
+  "lucide-react": "1.66.0"
+  "maplibre-gl": "6.19.0"
+  "motion": "14.9.0"
+  "radix-ui": "1.8.1"
+  "postgres": "3.4.9"
+  "react": "19.3.1"
+  "react-dom": "19.3.1"
+  "react-native": "0.88.1"
+  "react-native-safe-area-context": "5.11.1"
+  "react-native-screens": "4.30.1"
+  "rimraf": "6.1.4"
+  "storybook": "10.6.7"
+  "sucrase": "3.35.1"
+  "tailwind-merge": "3.7.0"
+  "tailwindcss": "4.3.5"
+  "testcontainers": "12.2.1"
+  "tsx": "4.23.15"
+  "turbo": "2.11.12"
+  "typescript": "5.9.3"
+  "vite": "8.3.8"
+  "vitest": "5.1.1"
+  "ws": "8.23.0"
+  "zod": "4.6.7"
+
+# pnpm 12 fails closed on dependency lifecycle scripts. esbuild needs its
+# postinstall validation for the docs toolchain. The remaining scripts are
+# optional/native accelerators or install-time notices; review before allowing.
+allowBuilds:
+  esbuild: true
+  core-js: false
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
+
+# Dependency-provided agent skills are not trusted or installed automatically.
+skills:
+  dirs: []
+
+minimumReleaseAgeExclude:
+  - "@expo/cli@58.1.21"
+  - "@expo/metro-config@58.0.23"
+  - "@expo/router-server@58.0.23"
+  - "@tanstack/query-core@5.108.0"
+  - "@tanstack/react-query@5.108.0"
+  - "@turbo/darwin-64@2.11.12"
+  - "@turbo/darwin-arm64@2.11.12"
+  - "@turbo/linux-64@2.11.12"
+  - "@turbo/linux-arm64@2.11.12"
+  - "@turbo/windows-64@2.11.12"
+  - "@turbo/windows-arm64@2.11.12"
+  - "@vitest/mocker@5.1.1"
+  - "@vitest/spy@5.1.1"
+  - babel-preset-expo@58.0.26
+  - expo-file-system@58.0.14
+  - expo-router@58.0.32
+  - expo@58.0.26
+  - maplibre-gl@6.19.0
+  - turbo@2.11.12
+  - vitest@5.1.1

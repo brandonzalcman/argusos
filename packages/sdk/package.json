@@ -1,0 +1,49 @@
+{
+  "name": "@argus/sdk",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "create-argus-plugin": "./dist/cli/create-argus-plugin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/create-client.d.ts",
+      "import": "./dist/client/create-client.js"
+    },
+    "./server": {
+      "types": "./dist/server/plugin.d.ts",
+      "import": "./dist/server/plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@argus/schema": "workspace:*",
+    "sucrase": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  }
+}
