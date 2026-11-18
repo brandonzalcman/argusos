@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Sandboxed custom-component document. The host embeds it ONLY as
+      <iframe sandbox="allow-scripts"> (never allow-same-origin), so it runs in an opaque origin.
+
+      CSP notes:
+      - script-src 'unsafe-eval' is required: user TSX is compiled and run with `new Function`
+        inside this document only. This is acceptable because the document has an opaque origin,
+        no network (connect-src 'none'), no frames, no storage and no secrets.
+      - style-src 'unsafe-inline': React inline style props and the runtime base stylesheet.
+      - img-src data: blob: only; no remote images.
+      - A <meta> CSP cannot set frame-ancestors; serve this file with a real header too
+        (see packages/sdk/README.md). In `vite dev`, a dev plugin only removes Vite's HMR client from this page, see
+        vite.config.ts; the built page uses this policy unchanged.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ArgusOS custom component sandbox</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

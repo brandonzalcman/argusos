@@ -54,8 +54,8 @@ Not executed: Docker/Compose, Helm, live database, NATS/Electric/realtime, Playw
 Contracts (fix before implementing the owning slice):
 
 1. `packages/schema/src/record.ts` create input accepts client `incidentId`/`tableId`; derive incident from `OperationContext`, reject path mismatch.
-2. `apps/api/src/persistence/repositories.ts` `UpdateCatalogEntity` lets scoping/tombstone columns be patched; use per-entity patch types.
-3. `positionId` nullable in API context/repositories but required in `packages/schema/src/context.ts`; make non-null or add a distinct system-actor type.
+2. ~~Fixed (backend slice, per-entity patch types).~~ `apps/api/src/persistence/repositories.ts` `UpdateCatalogEntity` lets scoping/tombstone columns be patched; use per-entity patch types.
+3. ~~Fixed (backend slice, non-null positionId).~~ `positionId` nullable in API context/repositories but required in `packages/schema/src/context.ts`; make non-null or add a distinct system-actor type.
 4. `packages/ddl-engine/src/model.ts` RLS snapshot: `forceForTableOwners` literal `true`; require incident binding when `scope` is `incident`.
 5. Brand SQL (`SafeSql`, `SafeIdentifier`) in ddl-engine and expr; no plain-string statements.
 6. `apps/realtime` protocol redefines envelope; import `packages/schema/src/realtime.ts`.
@@ -65,7 +65,7 @@ Contracts (fix before implementing the owning slice):
 
 Infrastructure:
 
-10. Dockerfiles copy the full build tree; use `pnpm deploy --prod`, digest-pin bases, add `apps/web` image.
-11. Helm: default resource limits, require image digests in production, per-workload Secrets, NetworkPolicy.
-12. NATS has no auth; add per-tenant permissions. Pin GitHub Actions by SHA.
-13. Local compose passwords are fixed literals (loopback only); source from env interpolation and add a CI guard against reaching Helm.
+10. ~~Dockerfiles copy the full build tree; use `pnpm deploy --prod`, digest-pin bases, add `apps/web` image.~~ **Done (unbuilt):** multi-stage `pnpm deploy --prod` Dockerfiles for api/realtime/worker/web, non-root, healthchecks, `ARG` base images with documented digest placeholders, web served by unprivileged nginx (`deploy/docker/web/nginx.conf`), wired into Compose (`apps` profile) and Helm. Remaining `TODO(verify)`: no image has been built; pnpm 12 `--legacy` flag, `dist/` inclusion, real digests.
+11. ~~Helm: default resource limits, require image digests in production, per-workload Secrets, NetworkPolicy.~~ **Done (unrendered):** default requests/limits (schema-required), `production: true` requires digests and `latest` is always rejected, one Secret per workload, default-deny + explicit-allow NetworkPolicies, restricted-PSS security contexts. Helm is not installed, so templates were not rendered; only values were schema-validated.
+12. ~~NATS has no auth; add per-tenant permissions. Pin GitHub Actions by SHA.~~ **Done (partly):** local NATS has per-user permissions (api/realtime/worker) with the Helm equivalent documented; true per-tenant/incident credentials remain `TODO(decision)` until the subject layout is fixed. All Actions pinned by SHA (resolved from upstream tags via `git ls-remote`) and a CI guard rejects unpinned actions, `:latest` tags and literal credentials. Root `.env.example` `NATS_URL` updated to the authenticated `argus_api` URL; Helm pinned to v3.19.5 in CI; Renovate regex manager added for Dockerfile `ARG *_IMAGE` bases.
+13. ~~Local compose passwords are fixed literals (loopback only); source from env interpolation and add a CI guard against reaching Helm.~~ **Done:** Compose, Postgres role bootstrap (`01-roles.sh`), Electric, Martin and NATS read credentials via `${VAR:?}` from `deploy/compose/.env`; guard script `.github/scripts/check-deploy-guards.sh` runs in CI. Docs updated with the one-command local path.

@@ -18,6 +18,7 @@
       "!**/.docusaurus",
       "!**/routeTree.gen.ts",
       "!**/pnpm-lock.yaml",
+      "!apps/api/migrations/meta",
       "!deploy/helm/**/templates",
       "!assets/icon.svg"
     ]

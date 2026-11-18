@@ -70,7 +70,10 @@ export const LOGO_MAX_BYTES = 512 * 1024;
 export const LOGO_ACCEPTED_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/webp"];
 
 /** Client-side check before upload; the server re-validates. Returns a message or null. */
-export function validateLogoFile(file: { readonly type: string; readonly size: number }): string | null {
+export function validateLogoFile(file: {
+  readonly type: string;
+  readonly size: number;
+}): string | null {
   if (!LOGO_ACCEPTED_TYPES.includes(file.type)) {
     return "Use a PNG, JPEG or WebP image. SVG logos are not accepted.";
   }
@@ -91,7 +94,11 @@ export function useAccountSessions() {
     queryKey: ["account-sessions", session?.scope.tenantId ?? null, session?.actor.userId ?? null],
     enabled: session !== null,
     retry: false,
-    queryFn: () => port.listSessions((session as NonNullable<typeof session>).scope, (session as NonNullable<typeof session>).actor),
+    queryFn: () =>
+      port.listSessions(
+        (session as NonNullable<typeof session>).scope,
+        (session as NonNullable<typeof session>).actor,
+      ),
   });
 }
 

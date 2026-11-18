@@ -68,15 +68,22 @@ export function parseEditorInput(field: FieldDefinition, raw: string): ParsedInp
     case "single-select":
     case "status": {
       const match = field.config.options.find(
-        (o) => !o.archived && (o.id === trimmed || o.label.toLocaleLowerCase() === trimmed.toLocaleLowerCase()),
+        (o) =>
+          !o.archived &&
+          (o.id === trimmed || o.label.toLocaleLowerCase() === trimmed.toLocaleLowerCase()),
       );
       return match ? { ok: true, value: match.id } : { ok: false, message: "Not a known option." };
     }
     case "multi-select": {
       const picked: string[] = [];
-      for (const part of trimmed.split(/[;,]/).map((s) => s.trim()).filter(Boolean)) {
+      for (const part of trimmed
+        .split(/[;,]/)
+        .map((s) => s.trim())
+        .filter(Boolean)) {
         const match = field.config.options.find(
-          (o) => !o.archived && (o.id === part || o.label.toLocaleLowerCase() === part.toLocaleLowerCase()),
+          (o) =>
+            !o.archived &&
+            (o.id === part || o.label.toLocaleLowerCase() === part.toLocaleLowerCase()),
         );
         if (!match) {
           return { ok: false, message: `“${part}” is not a known option.` };
@@ -98,7 +105,10 @@ export function parseEditorInput(field: FieldDefinition, raw: string): ParsedInp
         const proto = url.protocol.replace(":", "");
         return (field.config.allowedProtocols as readonly string[]).includes(proto)
           ? { ok: true, value: trimmed }
-          : { ok: false, message: `Allowed protocols: ${field.config.allowedProtocols.join(", ")}.` };
+          : {
+              ok: false,
+              message: `Allowed protocols: ${field.config.allowedProtocols.join(", ")}.`,
+            };
       } catch {
         return { ok: false, message: "Enter a valid URL." };
       }
@@ -115,4 +125,3 @@ export function parseEditorInput(field: FieldDefinition, raw: string): ParsedInp
       return { ok: false, message: "This field type cannot be edited here." };
   }
 }
-

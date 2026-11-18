@@ -4,9 +4,9 @@ import {
   type PluginCapability,
   type PluginManifest,
   type PluginSecurityScope,
+  redactValues,
   requirePluginCapability,
   requirePluginFields,
-  redactValues,
 } from "../protocol/capabilities.js";
 import {
   type HostErrorMessage,
@@ -170,7 +170,12 @@ export function createHostBridge(options: HostBridgeOptions): HostBridge {
   });
 
   const sendError = (code: HostErrorMessage["code"], correlationId: string | null): void => {
-    send({ ...envelope(correlationId), kind: "host.error", code, safeMessage: SAFE_MESSAGES[code] });
+    send({
+      ...envelope(correlationId),
+      kind: "host.error",
+      code,
+      safeMessage: SAFE_MESSAGES[code],
+    });
   };
 
   const readableFields = (tableId: string, incidentId: string | null): readonly string[] | null =>
@@ -185,6 +190,26 @@ export function createHostBridge(options: HostBridgeOptions): HostBridge {
     tableId,
     ...(incidentId === null ? {} : { incidentId }),
   });
+
+  /** Capability must be granted for the table/incident with at least one field; returns its fields. */
+  const requireTableAccess = (
+    capability: PluginCapability,
+    resource: { readonly tableId: string; readonly incidentId?: string },
+  ): readonly string[] | null => {
+    const granted = grantedFieldIds(scope, capability, resource);
+    if (granted === null) {
+      requirePluginCapability(scope, capability, resource);
+      return null;
+    }
+    const first = granted[0];
+    if (first === undefined) throw new CapabilityDeniedError();
+    requirePluginCapability(scope, capability, { ...resource, fieldId: first });
+    return granted;
+  };
+  const requireReadAccess = (resource: {
+    readonly tableId: string;
+    readonly incidentId?: string;
+  }) => requireTableAccess("record:read", resource);
 
   const grantedLabels = (): PluginCapability[] => [
     ...new Set(
@@ -217,8 +242,7 @@ export function createHostBridge(options: HostBridgeOptions): HostBridge {
 
   const handleGet = async (message: RecordGetRequest): Promise<void> => {
     const resource = resourceOf(message.tableId, message.incidentId);
-    const granted = grantedFieldIds(scope, "record:read", resource);
-    requirePluginCapability(scope, "record:read", granted === null ? resource : { ...resource, fieldId: granted[0] });
+    const granted = requireReadAccess(resource);
     if (message.fieldIds !== null) {
       requirePluginFields(scope, "record:read", resource, message.fieldIds);
     }
@@ -259,10 +283,9 @@ export function createHostBridge(options: HostBridgeOptions): HostBridge {
 
   const handleSubscribe = async (message: RecordSubscribeRequest): Promise<void> => {
     const resource = resourceOf(message.tableId, message.incidentId);
-    requirePluginCapability(scope, "record:subscribe", resource);
+    requireTableAccess("record:subscribe", resource);
     // Subscribed data is record data: reading must be granted for the same table/incident.
-    const granted = grantedFieldIds(scope, "record:read", resource);
-    requirePluginCapability(scope, "record:read", granted === null ? resource : { ...resource, fieldId: granted[0] });
+    const _granted = requireReadAccess(resource);
     if (subscriptions.size + pendingSubscriptions >= maxSubscriptions) {
       sendError("rate-limited", message.messageId);
       return;

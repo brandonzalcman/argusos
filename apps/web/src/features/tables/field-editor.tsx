@@ -1,9 +1,9 @@
 import type { FieldDefinition, FieldTypeId, SelectOption, TableDefinition } from "@argus/schema";
 import type { ReactElement, ReactNode } from "react";
 import { useId } from "react";
+import { btn, fieldsetCls, nativeControl, nativeMono, nativeTextarea } from "./controls.js";
 import { newDraftId, slugifyKey, withFieldType } from "./designer-model.js";
 import { getFieldType, listFieldTypes } from "./field-catalog.js";
-import "./tables.css";
 
 export interface FieldEditorProps {
   readonly field: FieldDefinition;
@@ -26,11 +26,11 @@ function Row({ label, hint, children }: RowProps): ReactElement {
   const id = useId();
   const hintId = `${id}-hint`;
   return (
-    <div className="tbl-form-row">
+    <div className="grid gap-1.5 text-sm [&>label]:font-medium">
       <label htmlFor={id}>{label}</label>
       {children(id, hint ? hintId : undefined)}
       {hint ? (
-        <small id={hintId} className="argus-muted">
+        <small id={hintId} className="text-sm text-fg-muted">
           {hint}
         </small>
       ) : null}
@@ -57,15 +57,15 @@ function OptionsEditor({
   const commit = (next: SelectOption[]): void =>
     onChange(next.map((o, index) => ({ ...o, order: index })));
   return (
-    <fieldset className="tbl-options">
-      <legend>Options</legend>
-      {ordered.length === 0 ? <p className="argus-muted">No options yet.</p> : null}
+    <fieldset className={fieldsetCls}>
+      <legend className="px-1 text-sm font-semibold">Options</legend>
+      {ordered.length === 0 ? <p className="text-sm text-fg-muted">No options yet.</p> : null}
       <ol>
         {ordered.map((option, index) => (
-          <li key={option.id} className="argus-cluster">
+          <li key={option.id} className="flex flex-wrap items-center gap-2">
             <input
               aria-label={`Option ${index + 1} label`}
-              className="tbl-input"
+              className={nativeControl}
               value={option.label}
               maxLength={200}
               onChange={(e) =>
@@ -100,7 +100,7 @@ function OptionsEditor({
             </label>
             <button
               type="button"
-              className="tbl-button"
+              className={btn}
               disabled={index === 0}
               onClick={() => {
                 const next = [...ordered];
@@ -115,7 +115,7 @@ function OptionsEditor({
             </button>
             <button
               type="button"
-              className="tbl-button"
+              className={btn}
               onClick={() => commit(ordered.filter((o) => o.id !== option.id))}
             >
               Remove option {index + 1}
@@ -125,7 +125,7 @@ function OptionsEditor({
       </ol>
       <button
         type="button"
-        className="tbl-button"
+        className={btn}
         onClick={() =>
           commit([
             ...ordered,
@@ -159,7 +159,7 @@ function ConfigForm({
                 type="number"
                 min={1}
                 max={10000}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.maxLength ?? ""}
                 onChange={(e) => patch({ maxLength: nullableNumber(e.target.value) })}
               />
@@ -181,7 +181,7 @@ function ConfigForm({
           {(id) => (
             <select
               id={id}
-              className="tbl-input"
+              className={nativeControl}
               value={field.config.format}
               onChange={(e) => patch({ format: e.target.value })}
             >
@@ -205,7 +205,7 @@ function ConfigForm({
                 <input
                   id={id}
                   type="number"
-                  className="tbl-input"
+                  className={nativeControl}
                   value={field.config[key] ?? ""}
                   onChange={(e) => patch({ [key]: nullableNumber(e.target.value) })}
                 />
@@ -221,7 +221,7 @@ function ConfigForm({
             {(id) => (
               <input
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 maxLength={3}
                 value={field.config.currencyCode}
                 onChange={(e) => patch({ currencyCode: e.target.value.toUpperCase() })}
@@ -235,7 +235,7 @@ function ConfigForm({
                 type="number"
                 min={0}
                 max={8}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.scale}
                 onChange={(e) => patch({ scale: nullableNumber(e.target.value) ?? 0 })}
               />
@@ -253,7 +253,7 @@ function ConfigForm({
                 type="number"
                 min={0}
                 max={8}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.scale}
                 onChange={(e) => patch({ scale: nullableNumber(e.target.value) ?? 0 })}
               />
@@ -263,7 +263,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.storage}
                 onChange={(e) => patch({ storage: e.target.value })}
               >
@@ -282,7 +282,7 @@ function ConfigForm({
               <input
                 id={id}
                 type="date"
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.minimum ?? ""}
                 onChange={(e) => patch({ minimum: e.target.value || null })}
               />
@@ -293,7 +293,7 @@ function ConfigForm({
               <input
                 id={id}
                 type="date"
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.maximum ?? ""}
                 onChange={(e) => patch({ maximum: e.target.value || null })}
               />
@@ -310,7 +310,7 @@ function ConfigForm({
           {(id) => (
             <input
               id={id}
-              className="tbl-input"
+              className={nativeControl}
               value={field.config.displayTimeZone ?? ""}
               onChange={(e) => patch({ displayTimeZone: e.target.value || null })}
             />
@@ -324,7 +324,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.storageUnit}
                 onChange={(e) => patch({ storageUnit: e.target.value })}
               >
@@ -338,7 +338,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.displayUnit}
                 onChange={(e) => patch({ displayUnit: e.target.value })}
               >
@@ -358,7 +358,7 @@ function ConfigForm({
             {(id) => (
               <input
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.trueLabel}
                 onChange={(e) => patch({ trueLabel: e.target.value })}
               />
@@ -368,7 +368,7 @@ function ConfigForm({
             {(id) => (
               <input
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.falseLabel}
                 onChange={(e) => patch({ falseLabel: e.target.value })}
               />
@@ -393,7 +393,7 @@ function ConfigForm({
                 id={id}
                 type="number"
                 min={1}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.maximumSelections ?? ""}
                 onChange={(e) => patch({ maximumSelections: nullableNumber(e.target.value) })}
               />
@@ -413,7 +413,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.initialOptionId ?? ""}
                 onChange={(e) => patch({ initialOptionId: e.target.value || null })}
               >
@@ -426,8 +426,8 @@ function ConfigForm({
               </select>
             )}
           </Row>
-          <fieldset>
-            <legend>Closed statuses</legend>
+          <fieldset className={fieldsetCls}>
+            <legend className="px-1 text-sm font-semibold">Closed statuses</legend>
             {active.map((o) => (
               <label key={o.id}>
                 <input
@@ -451,7 +451,7 @@ function ConfigForm({
     case "user":
     case "position":
       return (
-        <p className="argus-muted">
+        <p className="text-sm text-fg-muted">
           Any position may be chosen.{" "}
           {/* TODO(implementation): position picker once the directory port exists. */}
         </p>
@@ -463,7 +463,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.targetTableId}
                 onChange={(e) => patch({ targetTableId: e.target.value })}
               >
@@ -500,7 +500,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.relationId}
                 onChange={(e) => patch({ relationId: e.target.value, targetFieldId: "" })}
               >
@@ -517,7 +517,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.targetFieldId}
                 disabled={!target}
                 onChange={(e) => patch({ targetFieldId: e.target.value })}
@@ -536,7 +536,7 @@ function ConfigForm({
               {(id) => (
                 <select
                   id={id}
-                  className="tbl-input"
+                  className={nativeControl}
                   value={field.config.aggregation}
                   onChange={(e) => patch({ aggregation: e.target.value })}
                 >
@@ -564,7 +564,7 @@ function ConfigForm({
               <textarea
                 id={id}
                 aria-describedby={describedBy}
-                className="tbl-input tbl-mono"
+                className={`${nativeTextarea} ${nativeMono}`}
                 rows={4}
                 spellCheck={false}
                 value={field.config.expression}
@@ -576,7 +576,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.resultType ?? ""}
                 onChange={(e) => patch({ resultType: e.target.value || null })}
               >
@@ -595,7 +595,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.execution}
                 onChange={(e) => patch({ execution: e.target.value })}
               >
@@ -616,7 +616,7 @@ function ConfigForm({
                 id={id}
                 type="number"
                 min={1}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.maximumFiles ?? ""}
                 onChange={(e) => patch({ maximumFiles: nullableNumber(e.target.value) })}
               />
@@ -628,7 +628,7 @@ function ConfigForm({
                 id={id}
                 type="number"
                 min={1}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.maximumBytesPerFile}
                 onChange={(e) =>
                   patch({ maximumBytesPerFile: nullableNumber(e.target.value) ?? 1 })
@@ -643,7 +643,7 @@ function ConfigForm({
             {(id) => (
               <input
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.allowedMimeTypes.join(", ")}
                 onChange={(e) =>
                   patch({
@@ -664,7 +664,7 @@ function ConfigForm({
           {(id) => (
             <select
               id={id}
-              className="tbl-input"
+              className={nativeControl}
               value={field.config.geometry}
               onChange={(e) => patch({ geometry: e.target.value })}
             >
@@ -682,7 +682,7 @@ function ConfigForm({
           {(id) => (
             <input
               id={id}
-              className="tbl-input"
+              className={nativeControl}
               maxLength={2}
               value={field.config.defaultRegion ?? ""}
               onChange={(e) => patch({ defaultRegion: e.target.value.toUpperCase() || null })}
@@ -696,7 +696,7 @@ function ConfigForm({
           {(id) => (
             <input
               id={id}
-              className="tbl-input"
+              className={nativeControl}
               value={field.config.allowedDomains.join(", ")}
               onChange={(e) =>
                 patch({
@@ -712,8 +712,8 @@ function ConfigForm({
       );
     case "url":
       return (
-        <fieldset>
-          <legend>Allowed protocols</legend>
+        <fieldset className={fieldsetCls}>
+          <legend className="px-1 text-sm font-semibold">Allowed protocols</legend>
           {(["https", "http"] as const).map((p) => (
             <label key={p}>
               <input
@@ -739,7 +739,7 @@ function ConfigForm({
             {(id) => (
               <input
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 maxLength={30}
                 value={field.config.prefix}
                 onChange={(e) => patch({ prefix: e.target.value })}
@@ -753,7 +753,7 @@ function ConfigForm({
                 type="number"
                 min={1}
                 max={12}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.padding}
                 onChange={(e) => patch({ padding: nullableNumber(e.target.value) ?? 1 })}
               />
@@ -763,7 +763,7 @@ function ConfigForm({
             {(id) => (
               <select
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.scope}
                 onChange={(e) => patch({ scope: e.target.value })}
               >
@@ -784,7 +784,7 @@ function ConfigForm({
             {(id) => (
               <input
                 id={id}
-                className="tbl-input"
+                className={nativeControl}
                 value={field.config.meaning}
                 onChange={(e) => patch({ meaning: e.target.value })}
               />
@@ -802,7 +802,7 @@ function ConfigForm({
       );
     case "json":
       return (
-        <p className="argus-muted">
+        <p className="text-sm text-fg-muted">
           Free-form JSON.{" "}
           {/* TODO(implementation): JSON Schema editor for the optional validation schema. */}
         </p>
@@ -828,9 +828,12 @@ export function FieldEditor({
     onChange({ ...field, ...next } as FieldDefinition);
 
   return (
-    <div className="argus-stack">
+    <div className="grid gap-4">
       {issues.length > 0 ? (
-        <ul role="alert" className="tbl-issues">
+        <ul
+          role="alert"
+          className="m-0 list-disc rounded-md border border-critical bg-critical-subtle p-3 ps-8 text-sm text-critical"
+        >
           {issues.map((message) => (
             <li key={message}>{message}</li>
           ))}
@@ -841,7 +844,7 @@ export function FieldEditor({
         {(id) => (
           <input
             id={id}
-            className="tbl-input"
+            className={nativeControl}
             value={field.name}
             maxLength={200}
             onChange={(e) =>
@@ -867,7 +870,7 @@ export function FieldEditor({
           <input
             id={id}
             aria-describedby={describedBy}
-            className="tbl-input tbl-mono"
+            className={`${nativeControl} ${nativeMono}`}
             value={field.key}
             readOnly={!isNew}
             onChange={(e) => patch({ key: e.target.value })}
@@ -879,7 +882,7 @@ export function FieldEditor({
           <select
             id={id}
             aria-describedby={describedBy}
-            className="tbl-input"
+            className={nativeControl}
             value={field.type}
             onChange={(e) => onChange(withFieldType(field, e.target.value as FieldTypeId))}
           >
@@ -893,13 +896,13 @@ export function FieldEditor({
         )}
       </Row>
       {!isNew ? (
-        <p role="note" className="argus-muted">
+        <p role="note" className="text-sm text-fg-muted">
           Changing the type of a published field plans a conversion. Rows that cannot convert are
           listed in the schema change preview before anything is applied.
         </p>
       ) : null}
       {plugin?.metadata.release === "later" ? (
-        <p role="note" className="argus-muted">
+        <p role="note" className="text-sm text-fg-muted">
           This type's runtime behaviour ships in a later release; its configuration is already
           versioned.{" "}
           {/* TODO(verify): confirm release gating for later field types with product. */}
@@ -910,7 +913,7 @@ export function FieldEditor({
         {(id) => (
           <textarea
             id={id}
-            className="tbl-input"
+            className={nativeTextarea}
             rows={2}
             maxLength={2000}
             value={field.description ?? ""}
@@ -919,13 +922,13 @@ export function FieldEditor({
         )}
       </Row>
 
-      <fieldset className="argus-stack">
-        <legend>Type settings</legend>
+      <fieldset className={fieldsetCls}>
+        <legend className="px-1 text-sm font-semibold">Type settings</legend>
         <ConfigForm field={field} draftFields={draftFields} tables={tables} onChange={onChange} />
       </fieldset>
 
-      <fieldset className="argus-stack">
-        <legend>Rules and access</legend>
+      <fieldset className={fieldsetCls}>
+        <legend className="px-1 text-sm font-semibold">Rules and access</legend>
         <label>
           <input
             type="checkbox"
@@ -954,7 +957,7 @@ export function FieldEditor({
           {(id) => (
             <select
               id={id}
-              className="tbl-input"
+              className={nativeControl}
               value={field.sensitivity}
               onChange={(e) =>
                 patch({ sensitivity: e.target.value as FieldDefinition["sensitivity"] })
@@ -975,7 +978,7 @@ export function FieldEditor({
             <select
               id={id}
               aria-describedby={describedBy}
-              className="tbl-input"
+              className={nativeControl}
               value={field.access.defaultMode}
               onChange={(e) =>
                 patch({

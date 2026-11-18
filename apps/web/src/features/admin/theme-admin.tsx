@@ -4,12 +4,29 @@ import {
   type ThemeTokens,
   themeDefinitionSchema,
 } from "@argus/schema";
-import { type ReactElement, useId, useState } from "react";
-import { PageHeader } from "../workflows/status-views.js";
+import {
+  Badge,
+  Button,
+  DensityControl,
+  Field,
+  IconButton,
+  Input,
+  PageContainer,
+  PageHeader,
+  Panel,
+  Switch,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@argus/ui";
+import { CircleCheck, CircleX, Plus, Trash2 } from "@argus/ui/icons";
+import { type ReactElement, useState } from "react";
 import { useAdminSave, useTheme } from "./admin-queries.js";
 import { checkThemeContrast } from "./definition-logic.js";
+import { LogoUpload } from "./logo-upload.js";
 import { QueryGate } from "./query-gate.js";
-import { DraftToolbar, useDraft } from "./use-draft.js";
+import { DraftActions, DraftConflict, useDraft } from "./use-draft.js";
 
 type TokenGroup = "colors" | "radii" | "spacing" | "typography";
 const GROUPS: readonly { key: TokenGroup; label: string }[] = [
@@ -19,6 +36,7 @@ const GROUPS: readonly { key: TokenGroup; label: string }[] = [
   { key: "typography", label: "Typography" },
 ];
 const MODES: readonly ThemeMode[] = ["light", "dark", "high-contrast"];
+const TERMS = ["incident", "position", "board", "record"] as const;
 
 function TokenGroupEditor({
   label,
@@ -30,54 +48,72 @@ function TokenGroupEditor({
   readonly onChange: (next: Record<string, string>) => void;
 }): ReactElement {
   const [newKey, setNewKey] = useState("");
-  const baseId = useId();
+  const names = Object.keys(entries);
   return (
-    <fieldset>
-      <legend>{label}</legend>
-      {Object.entries(entries).length === 0 ? (
-        <p className="argus-muted">No tokens defined.</p>
-      ) : null}
-      {Object.entries(entries).map(([name, value]) => (
-        <div key={name} className="argus-cluster" style={{ marginBlockEnd: "0.25rem" }}>
-          <label
-            htmlFor={`${baseId}-${name}`}
-            style={{ minWidth: "8rem", fontFamily: "var(--argus-font-mono)" }}
-          >
-            {name}
-          </label>
-          <input
-            id={`${baseId}-${name}`}
-            value={value}
-            spellCheck={false}
-            onChange={(event) => onChange({ ...entries, [name]: event.target.value })}
-          />
-          <button
-            type="button"
-            aria-label={`Remove ${label} token ${name}`}
+    <fieldset className="grid content-start gap-2 rounded-md border border-border p-3">
+      <legend className="px-1 text-sm font-semibold text-fg">{label}</legend>
+      {names.length === 0 ? <p className="text-sm text-fg-subtle">No tokens defined.</p> : null}
+      {names.map((name) => (
+        <div key={name} className="grid grid-cols-[8rem_minmax(0,1fr)_auto] items-end gap-2">
+          <span className="pb-2 font-mono text-sm text-fg-muted">{name}</span>
+          <Field label={`${label} token ${name}`} hideLabel>
+            <Input
+              mono
+              value={entries[name] ?? ""}
+              spellCheck={false}
+              onChange={(event) => onChange({ ...entries, [name]: event.target.value })}
+            />
+          </Field>
+          <IconButton
+            label={`Remove ${label.toLowerCase()} token ${name}`}
+            icon={<Trash2 />}
             onClick={() => {
               const { [name]: _removed, ...rest } = entries;
               onChange(rest);
             }}
-          >
-            Remove
-          </button>
+          />
         </div>
       ))}
-      <div className="argus-cluster">
-        <label htmlFor={`${baseId}-new`}>New {label.toLowerCase()} token name</label>
-        <input id={`${baseId}-new`} value={newKey} onChange={(e) => setNewKey(e.target.value)} />
-        <button
-          type="button"
-          disabled={newKey.trim() === "" || newKey in entries}
+      <div className="flex items-end gap-2">
+        <Field label={`New ${label.toLowerCase()} token name`} className="max-w-xs flex-1">
+          <Input mono value={newKey} onChange={(event) => setNewKey(event.target.value)} />
+        </Field>
+        <Button
+          leadingIcon={<Plus aria-hidden="true" />}
+          disabled={newKey.trim() === "" || newKey.trim() in entries}
           onClick={() => {
             onChange({ ...entries, [newKey.trim()]: "" });
             setNewKey("");
           }}
         >
           Add token
-        </button>
+        </Button>
       </div>
     </fieldset>
+  );
+}
+
+function ContrastList({ tokens }: { readonly tokens: ThemeTokens }): ReactElement {
+  const checks = checkThemeContrast(tokens.colors);
+  return (
+    <ul className="grid gap-1.5">
+      {checks.map((check) => (
+        <li key={check.label} className="flex flex-wrap items-center gap-2 text-base">
+          <Badge
+            tone={check.pass ? "success" : check.ratio === null ? "neutral" : "critical"}
+            icon={check.pass ? <CircleCheck /> : <CircleX />}
+          >
+            {check.pass ? "Pass" : check.ratio === null ? "Not measured" : "Fail"}
+          </Badge>
+          <span>{check.label}</span>
+          <span className="font-mono text-sm text-fg-muted">
+            {check.ratio === null
+              ? `define hex tokens "${check.foregroundKey}" and "${check.backgroundKey}"`
+              : `${check.ratio.toFixed(2)}:1 (needs ${check.minimum}:1)`}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -95,163 +131,155 @@ function ThemeEditor({ theme }: { readonly theme: ThemeDefinition }): ReactEleme
   );
   const { draft, edit } = controller;
   const [mode, setMode] = useState<ThemeMode>(draft.activeMode);
-  const nameId = useId();
-  const tokens = draft.modes[mode];
-  const contrast = checkThemeContrast(tokens.colors);
   const validation = themeDefinitionSchema.safeParse(draft);
 
-  const setTokens = (next: ThemeTokens): void =>
-    edit((current) => ({ ...current, modes: { ...current.modes, [mode]: next } }));
+  const setTokens = (target: ThemeMode, next: ThemeTokens): void =>
+    edit((current) => ({ ...current, modes: { ...current.modes, [target]: next } }));
 
   return (
-    <div className="argus-stack">
-      <DraftToolbar
-        controller={controller}
-        conflictSummary="Review the other version before choosing."
+    <PageContainer width="wide">
+      <PageHeader
+        title="Theme and terminology"
+        description="Versioned tenant tokens, density, contrast modes, logo and core terminology."
+        actions={<DraftActions controller={controller} />}
       />
-      <section className="argus-panel">
-        <h2 style={{ marginTop: 0 }}>General</h2>
-        <label htmlFor={nameId} style={{ display: "block", fontWeight: 600 }}>
-          Theme name
-        </label>
-        <input
-          id={nameId}
-          value={draft.name}
-          onChange={(e) => edit((c) => ({ ...c, name: e.target.value }))}
-        />
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={draft.rightToLeft}
-              onChange={(e) => edit((c) => ({ ...c, rightToLeft: e.target.checked }))}
-            />{" "}
-            Right-to-left layout
-          </label>
-        </div>
-        <div>
-          <label htmlFor={`${nameId}-logo`} style={{ display: "block", fontWeight: 600 }}>
-            Logo attachment ID (object storage)
-          </label>
-          <input
-            id={`${nameId}-logo`}
-            value={draft.logoAttachmentId ?? ""}
-            onChange={(e) =>
-              edit((c) => ({
-                ...c,
-                logoAttachmentId: e.target.value === "" ? null : e.target.value,
-              }))
-            }
-          />
-          <small className="argus-muted" style={{ display: "block" }}>
-            Upload is TODO(implementation); status colours and contrast roles stay locked by policy.
-          </small>
-        </div>
-      </section>
-
-      <section className="argus-panel">
-        <h2 style={{ marginTop: 0 }}>Terminology</h2>
-        {(["incident", "position", "board", "record"] as const).map((term) => (
-          <div key={term}>
-            <label htmlFor={`${nameId}-${term}`} style={{ display: "block", fontWeight: 600 }}>
-              Word for “{term}”
-            </label>
-            <input
-              id={`${nameId}-${term}`}
-              value={draft.terminology[term]}
-              onChange={(e) =>
-                edit((c) => ({ ...c, terminology: { ...c.terminology, [term]: e.target.value } }))
-              }
+      <DraftConflict
+        controller={controller}
+        recordLabel={draft.name}
+        describe={(mine, theirs) => [
+          { fieldId: "name", fieldLabel: "Name", localValue: mine.name, serverValue: theirs.name },
+          {
+            fieldId: "terminology",
+            fieldLabel: "Terminology",
+            localValue: TERMS.map((t) => mine.terminology[t]).join(" / "),
+            serverValue: TERMS.map((t) => theirs.terminology[t]).join(" / "),
+          },
+        ]}
+      />
+      <div className="grid items-start gap-(--argus-gap) lg:grid-cols-2">
+        <Panel title="General" bodyClassName="grid gap-4">
+          <Field label="Theme name">
+            <Input
+              value={draft.name}
+              onChange={(event) => edit((c) => ({ ...c, name: event.target.value }))}
             />
-          </div>
-        ))}
-      </section>
-
-      <section className="argus-panel" aria-labelledby="tokens-heading">
-        <h2 id="tokens-heading" style={{ marginTop: 0 }}>
-          Tokens
-        </h2>
-        <div role="radiogroup" aria-label="Mode being edited" className="argus-cluster">
-          {MODES.map((candidate) => (
-            <label key={candidate}>
-              <input
-                type="radio"
-                name={`${nameId}-mode`}
-                checked={mode === candidate}
-                onChange={() => setMode(candidate)}
-              />{" "}
-              {candidate}
-            </label>
-          ))}
-        </div>
-        <fieldset>
-          <legend>Density</legend>
-          {(["comfortable", "compact"] as const).map((density) => (
-            <label key={density} style={{ marginInlineEnd: "1rem" }}>
-              <input
-                type="radio"
-                name={`${nameId}-density`}
-                checked={tokens.density === density}
-                onChange={() => setTokens({ ...tokens, density })}
-              />{" "}
-              {density}
-            </label>
-          ))}
-        </fieldset>
-        {GROUPS.map((group) => (
-          <TokenGroupEditor
-            key={`${mode}-${group.key}`}
-            label={group.label}
-            entries={tokens[group.key]}
-            onChange={(next) => setTokens({ ...tokens, [group.key]: next })}
+          </Field>
+          <Switch
+            label="Right-to-left layout"
+            checked={draft.rightToLeft}
+            onCheckedChange={(rightToLeft) => edit((c) => ({ ...c, rightToLeft }))}
           />
-        ))}
-      </section>
-
-      <section className="argus-panel" aria-labelledby="contrast-heading">
-        <h2 id="contrast-heading" style={{ marginTop: 0 }}>
-          WCAG 2.2 AA contrast ({mode})
-        </h2>
-        <ul>
-          {contrast.map((check) => (
-            <li key={check.label}>
-              <span aria-hidden="true">{check.pass ? "✓" : "✕"} </span>
-              {check.label}:{" "}
-              {check.ratio === null
-                ? `cannot be measured — define hex tokens “${check.foregroundKey}” and “${check.backgroundKey}”`
-                : `${check.ratio.toFixed(2)}:1 (needs ${check.minimum}:1) — ${check.pass ? "pass" : "fail"}`}
-            </li>
-          ))}
-        </ul>
-        {/* Sample uses the draft's own tokens; it is a style sample, not operational data. */}
-        <section
-          aria-label="Theme sample (not real data)"
-          style={{
-            padding: "0.75rem",
-            border: `1px solid ${tokens.colors.border ?? "currentColor"}`,
-            background: tokens.colors.surface,
-            color: tokens.colors.text,
-          }}
+        </Panel>
+        <Panel
+          title="Terminology"
+          description="The words your organisation uses. Plain text only."
+          bodyClassName="grid gap-3 sm:grid-cols-2"
         >
-          Sample text — <span style={{ color: tokens.colors.accent }}>accent link</span>
-        </section>
-      </section>
-
-      {validation.success ? (
-        <p role="status">✓ Draft matches the theme schema.</p>
-      ) : (
-        <section role="alert" className="argus-panel">
-          <h2 style={{ marginTop: 0 }}>Schema problems</h2>
-          <ul>
+          {TERMS.map((term) => (
+            <Field key={term} label={`Word for "${term}"`}>
+              <Input
+                value={draft.terminology[term]}
+                onChange={(event) =>
+                  edit((c) => ({
+                    ...c,
+                    terminology: { ...c.terminology, [term]: event.target.value },
+                  }))
+                }
+              />
+            </Field>
+          ))}
+        </Panel>
+      </div>
+      <Panel
+        title="Logo"
+        description="Stored in object storage; the theme keeps only the attachment id."
+      >
+        <LogoUpload
+          attachmentId={draft.logoAttachmentId}
+          onChange={(logoAttachmentId) => edit((c) => ({ ...c, logoAttachmentId }))}
+        />
+      </Panel>
+      <Panel
+        title="Tokens"
+        description="Status colours are locked by the design system and cannot be overridden here."
+      >
+        <Tabs value={mode} onValueChange={(next) => setMode(next as ThemeMode)}>
+          <TabsList aria-label="Mode being edited">
+            {MODES.map((m) => (
+              <TabsTrigger key={m} value={m}>
+                {m}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {MODES.map((m) => {
+            const tokens = draft.modes[m];
+            return (
+              <TabsContent key={m} value={m} className="grid gap-4 pt-4">
+                <DensityControl
+                  label="Density"
+                  value={tokens.density}
+                  onChange={(density) => setTokens(m, { ...tokens, density })}
+                />
+                <div className="grid items-start gap-3 xl:grid-cols-2">
+                  {GROUPS.map((group) => (
+                    <TokenGroupEditor
+                      key={`${m}-${group.key}`}
+                      label={group.label}
+                      entries={tokens[group.key]}
+                      onChange={(next) => setTokens(m, { ...tokens, [group.key]: next })}
+                    />
+                  ))}
+                </div>
+                <section aria-label={`WCAG 2.2 AA contrast for ${m}`} className="grid gap-2">
+                  <h3 className="text-md font-semibold text-fg">WCAG 2.2 AA contrast ({m})</h3>
+                  <ContrastList tokens={tokens} />
+                  <div
+                    role="img"
+                    aria-label="Style sample using this mode's tokens (not real data)"
+                    className="rounded-md border p-3 text-base"
+                    style={{
+                      background: tokens.colors.surface,
+                      color: tokens.colors.text,
+                      borderColor: tokens.colors.border,
+                    }}
+                  >
+                    Sample text and{" "}
+                    <span style={{ color: tokens.colors.accent }}>an accent link</span>
+                  </div>
+                </section>
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+      </Panel>
+      <Panel
+        title="Schema check"
+        status={
+          validation.success ? (
+            <Badge tone="success" icon={<CircleCheck />}>
+              Valid
+            </Badge>
+          ) : (
+            <Badge tone="critical" icon={<CircleX />}>
+              {validation.error.issues.length} problems
+            </Badge>
+          )
+        }
+      >
+        {validation.success ? (
+          <p className="text-base text-fg-muted">The draft matches the theme schema.</p>
+        ) : (
+          <ul className="grid gap-1 text-base">
             {validation.error.issues.slice(0, 8).map((issue) => (
               <li key={`${issue.path.join(".")}-${issue.message}`}>
-                <code>{issue.path.join(".") || "(root)"}</code>: {issue.message}
+                <code className="font-mono text-sm">{issue.path.join(".") || "(root)"}</code>:{" "}
+                {issue.message}
               </li>
             ))}
           </ul>
-        </section>
-      )}
-    </div>
+        )}
+      </Panel>
+    </PageContainer>
   );
 }
 
@@ -263,18 +291,14 @@ function ThemeEditor({ theme }: { readonly theme: ThemeDefinition }): ReactEleme
 export function ThemeAdminScreen(): ReactElement {
   const query = useTheme();
   return (
-    <article className="argus-stack">
-      <PageHeader
-        title="Theme and terminology"
-        description="Versioned tenant tokens, density, contrast modes, logo and core terminology."
-      />
-      <QueryGate
-        query={query}
-        noun="theme"
-        emptyDescription="No tenant theme exists yet. Creating one requires the theme API (TODO(implementation))."
-      >
-        {(theme) => <ThemeEditor key={theme.id} theme={theme} />}
-      </QueryGate>
-    </article>
+    <QueryGate
+      query={query}
+      noun="theme"
+      title="Theme and terminology"
+      description="Versioned tenant tokens, density, contrast modes, logo and core terminology."
+      emptyDescription="No tenant theme exists yet. Creating one requires the theme API (TODO(implementation))."
+    >
+      {(theme) => <ThemeEditor key={theme.id} theme={theme} />}
+    </QueryGate>
   );
 }

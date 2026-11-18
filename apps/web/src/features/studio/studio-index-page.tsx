@@ -42,7 +42,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactElement, type ReactNode, useState } from "react";
 import { useStudioPort } from "../../services/studio.js";
-import { CreateDefinitionDialog, type CreateDefinitionRequest } from "./create-definition-dialog.js";
+import {
+  CreateDefinitionDialog,
+  type CreateDefinitionRequest,
+} from "./create-definition-dialog.js";
 import { useDevMode } from "./dev-mode.js";
 import { useSessionSnapshot } from "./session.js";
 import { builderHref, kindLabels, runtimeHref, statusLabel } from "./studio-links.js";
@@ -154,7 +157,9 @@ function DefinitionList({ kind }: { readonly kind: StudioDefinitionKind }): Reac
       />
     );
   } else if (items.length === 0) {
-    body = <EmptyState icon={<Search />} title={`No ${labels.plural.toLowerCase()} match “${search}”`} />;
+    body = (
+      <EmptyState icon={<Search />} title={`No ${labels.plural.toLowerCase()} match “${search}”`} />
+    );
   } else {
     body = (
       <TableContainer className="rounded-none border-0">
@@ -198,8 +203,13 @@ function DefinitionList({ kind }: { readonly kind: StudioDefinitionKind }): Reac
           </Button>
         ) : null}
       </div>
-      <div className="overflow-hidden rounded-md border border-border bg-surface shadow-sm">{body}</div>
-      <Dialog open={creating} onOpenChange={(open) => (create.isPending ? undefined : setCreating(open))}>
+      <div className="overflow-hidden rounded-md border border-border bg-surface shadow-sm">
+        {body}
+      </div>
+      <Dialog
+        open={creating}
+        onOpenChange={(open) => (create.isPending ? undefined : setCreating(open))}
+      >
         {creating ? (
           <CreateDefinitionDialog
             kind={kind}
@@ -229,7 +239,10 @@ function DefinitionRow({ item }: { readonly item: StudioDefinitionSummary }): Re
       <TableCell>
         <div className="grid gap-0.5">
           {item.permissions.edit ? (
-            <Link to={editHref} className="font-medium text-fg hover:text-accent-text hover:underline">
+            <Link
+              to={editHref}
+              className="font-medium text-fg hover:text-accent-text hover:underline"
+            >
               {item.name}
             </Link>
           ) : (

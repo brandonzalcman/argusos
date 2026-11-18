@@ -43,11 +43,7 @@ export function suggestKey(name: string): string {
 /** Suggests a URL slug from a display name. */
 export function suggestSlug(name: string): string {
   return (
-    suggestKey(name)
-      .replace(/_/g, "-")
-      .replace(/-+/g, "-")
-      .slice(0, 80)
-      .replace(/-$/, "") || "page"
+    suggestKey(name).replace(/_/g, "-").replace(/-+/g, "-").slice(0, 80).replace(/-$/, "") || "page"
   );
 }
 

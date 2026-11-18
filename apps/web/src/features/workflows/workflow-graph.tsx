@@ -2,9 +2,9 @@ import type { WorkflowEdge, WorkflowStep, WorkflowTrigger } from "@argus/schema"
 import { Badge, Panel, Tabs, TabsContent, TabsList, TabsTrigger } from "@argus/ui";
 import { CircleCheck, TriangleAlert } from "@argus/ui/icons";
 import { type ReactElement, useState } from "react";
+import type { EdgeBranch, GraphIssue } from "./graph.js";
 import { GraphCanvas } from "./graph-canvas.js";
 import { GraphEditor } from "./graph-editor.js";
-import type { EdgeBranch, GraphIssue } from "./graph.js";
 
 type GraphMode = "canvas" | "outline";
 const STORAGE_KEY = "argus.workflow-graph-mode";
@@ -34,7 +34,11 @@ export interface WorkflowGraphProps {
   readonly readOnly?: boolean;
   readonly onSelect: (id: string) => void;
   readonly onEdit: (id: string) => void;
-  readonly onConnect: (sourceStepId: string, branch: EdgeBranch, targetStepId: string | null) => void;
+  readonly onConnect: (
+    sourceStepId: string,
+    branch: EdgeBranch,
+    targetStepId: string | null,
+  ) => void;
   readonly onRequestDelete: (stepId: string) => void;
 }
 
@@ -43,11 +47,7 @@ export interface WorkflowGraphProps {
  * The two views share selection, so an edit in one is visible in the other and in the inspector.
  * The outline is the WCAG 2.2 AA path for operating the graph without a pointer.
  */
-export function WorkflowGraph({
-  onConnect,
-  onEdit,
-  ...graph
-}: WorkflowGraphProps): ReactElement {
+export function WorkflowGraph({ onConnect, onEdit, ...graph }: WorkflowGraphProps): ReactElement {
   const [mode, setMode] = useState<GraphMode>(readStoredMode);
   const change = (next: string): void => {
     const value: GraphMode = next === "outline" ? "outline" : "canvas";

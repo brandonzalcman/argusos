@@ -1,3 +1,5 @@
+import { Badge, Button, ConflictBanner, type ConflictField } from "@argus/ui";
+import { Save } from "@argus/ui/icons";
 import { type ReactElement, useCallback, useEffect, useState } from "react";
 import { type SaveState, SaveStatus } from "../workflows/status-views.js";
 import { DefinitionConflictError } from "./admin-service.js";
@@ -98,51 +100,52 @@ export function useDraft<T extends { readonly version: number }>(
   };
 }
 
-/** Save button, visible save state, and keep-mine / keep-theirs conflict actions. */
-export function DraftToolbar<T extends { readonly version: number }>({
+/** Header actions for a draft: visible save state, version, and the primary Save button. */
+export function DraftActions<T extends { readonly version: number }>({
   controller,
   disabled = false,
-  conflictSummary,
 }: {
   readonly controller: DraftController<T>;
   readonly disabled?: boolean;
-  readonly conflictSummary?: string;
 }): ReactElement {
-  const { dirty, saveState, saveError, conflict, save, keepMine, keepTheirs, baseVersion } =
-    controller;
+  const { dirty, saveState, saveError, save, baseVersion } = controller;
   return (
-    <div className="argus-stack" style={{ gap: "0.5rem" }}>
-      <div className="argus-cluster">
-        <button
-          type="button"
-          onClick={save}
-          disabled={disabled || !dirty || saveState === "saving"}
-        >
-          Save draft
-        </button>
-        <SaveStatus state={saveState} error={saveError} />
-        {dirty ? <span role="status">● Unsaved changes</span> : null}
-        <span className="argus-muted" style={{ fontFamily: "var(--argus-font-mono)" }}>
-          base v{baseVersion}
-        </span>
-      </div>
-      {conflict ? (
-        <section role="alert" className="argus-panel">
-          <h2 style={{ marginTop: 0 }}>Changes need review</h2>
-          <p>
-            Someone saved a newer version. Your edits were not overwritten.
-            {conflictSummary ? ` ${conflictSummary}` : ""}
-          </p>
-          <div className="argus-cluster">
-            <button type="button" onClick={keepTheirs}>
-              Keep theirs (discard my edits)
-            </button>
-            <button type="button" onClick={keepMine}>
-              Keep mine (rebase onto v{conflict.version})
-            </button>
-          </div>
-        </section>
-      ) : null}
-    </div>
+    <>
+      <SaveStatus state={saveState} error={saveError} />
+      {dirty ? <Badge tone="warning">Unsaved changes</Badge> : null}
+      <Badge tone="neutral">Version {baseVersion}</Badge>
+      <Button
+        variant="primary"
+        leadingIcon={<Save aria-hidden="true" />}
+        loading={saveState === "saving"}
+        disabled={disabled || !dirty}
+        onClick={save}
+      >
+        Save draft
+      </Button>
+    </>
+  );
+}
+
+/** Both-values conflict banner with keep-mine / keep-theirs, shown only while a conflict exists. */
+export function DraftConflict<T extends { readonly version: number }>({
+  controller,
+  recordLabel,
+  describe,
+}: {
+  readonly controller: DraftController<T>;
+  readonly recordLabel: string;
+  /** Field-level local/server values to compare (redact anything the viewer may not see). */
+  readonly describe: (mine: T, theirs: T) => readonly ConflictField[];
+}): ReactElement | null {
+  const { conflict, draft, keepMine, keepTheirs } = controller;
+  if (!conflict) return null;
+  return (
+    <ConflictBanner
+      recordLabel={recordLabel}
+      fields={describe(draft, conflict)}
+      onKeepMine={keepMine}
+      onKeepTheirs={keepTheirs}
+    />
   );
 }

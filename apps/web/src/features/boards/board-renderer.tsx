@@ -15,7 +15,12 @@ import {
   useState,
 } from "react";
 import { BlockView } from "./blocks/block-view.js";
-import { breakpointForWidth, resolveBreakpointItems, stackItems } from "./layout-ops.js";
+import {
+  breakpointForWidth,
+  collapseEmptyRows,
+  resolveBreakpointItems,
+  stackItems,
+} from "./layout-ops.js";
 import type { BlockDefinition } from "./model.js";
 import { ErrorState } from "./states.js";
 
@@ -107,7 +112,9 @@ export function BoardGrid(props: BoardGridProps): ReactElement {
   const stacked = requested === "phone";
   const ordered = stacked
     ? stackItems(items)
-    : items.filter((item) => !item.hidden).toSorted((a, b) => a.y - b.y || a.x - b.x);
+    : collapseEmptyRows(items.filter((item) => !item.hidden)).toSorted(
+        (a, b) => a.y - b.y || a.x - b.x,
+      );
 
   let hiddenByCondition = 0;
   const cells: ReactElement[] = [];

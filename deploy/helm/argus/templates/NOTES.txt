@@ -5,8 +5,9 @@ verify PostgreSQL/PostGIS, NATS JetStream, S3, ElectricSQL, Martin, OIDC, DNS,
 TLS certificates, backups, observability backends, or application migrations.
 
 The referenced container images and health endpoints must exist before install.
-The pre-created Secret {{ .Values.secrets.existingSecret }} must contain the
-runtime credentials documented in deploy/README.md.
+The pre-created per-workload Secrets ({{ .Values.secrets.api.existingSecret }},
+{{ .Values.secrets.realtime.existingSecret }}, {{ .Values.secrets.worker.existingSecret }}) must contain
+only the credentials each workload needs, as documented in deploy/README.md.
 
 {{- if .Values.ingress.enabled }}
 Ingress hosts:

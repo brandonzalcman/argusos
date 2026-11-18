@@ -19,9 +19,9 @@ import {
   type TriggerType,
 } from "./graph.js";
 import { TRIGGER_NODE_ID } from "./graph-editor.js";
+
 /** Sentinel for "no target": Radix Select items cannot use the empty string. */
 const END_WORKFLOW = "__end__";
-
 
 export interface NodeInspectorProps {
   readonly selectedId: string;

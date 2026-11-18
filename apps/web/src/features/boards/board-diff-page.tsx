@@ -305,7 +305,9 @@ export function BoardDiffPage(): ReactElement {
             {publishedVersion !== null ? (
               <Badge tone="success">Published v{publishedVersion}</Badge>
             ) : null}
-            {draft.data ? <Badge tone="warning">Draft v{draft.data.definition.version}</Badge> : null}
+            {draft.data ? (
+              <Badge tone="warning">Draft v{draft.data.definition.version}</Badge>
+            ) : null}
           </span>
         }
         actions={
@@ -325,10 +327,7 @@ export function BoardDiffPage(): ReactElement {
       />
 
       {outcome ? (
-        <p
-          className="rounded-md border border-success bg-success-subtle p-3 text-fg"
-          role="status"
-        >
+        <p className="rounded-md border border-success bg-success-subtle p-3 text-fg" role="status">
           {outcome}
         </p>
       ) : null}

@@ -385,8 +385,11 @@ export function formatCellValue(field: FieldDefinition, value: unknown): string 
         return String(value);
       }
       return new Intl.DateTimeFormat(undefined, {
-        dateStyle: "short",
-        timeStyle: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
         timeZoneName: "short",
         ...(field.config.displayTimeZone ? { timeZone: field.config.displayTimeZone } : {}),
       }).format(t);

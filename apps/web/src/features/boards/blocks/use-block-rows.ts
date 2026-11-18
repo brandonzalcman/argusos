@@ -3,6 +3,31 @@ import { type UseQueryResult, useQuery } from "@tanstack/react-query";
 import type { BoardDefinition } from "../model.js";
 import { isNotImplementedError, POLLING_INTERVAL_MS } from "../queries.js";
 
+/** A data port that never settles must become an error state, not an endless skeleton. */
+export const BLOCK_DATA_TIMEOUT_MS = 15_000;
+
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Data request timed out after ${ms / 1000}s`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/** Deterministic configuration error: retrying cannot help, so it surfaces immediately. */
+export class BlockSourceError extends Error {}
+
 export type BoardRow = BoardDataResult["rows"][number];
 
 export interface UseBlockRowsInput {
@@ -22,7 +47,8 @@ export interface UseBlockRowsInput {
  * entire security scope so cached rows can never be reused across tenant/incident/position.
  * Input: the board definition (source lookup), render context, data port and table/view ids.
  * Output: a TanStack Query result with authorized rows and the server source version.
- * Errors: a table that is not a data source of the board rejects without calling the port.
+ * Errors: a table that is not a data source of the board rejects without calling the port; a port that
+ * does not settle within BLOCK_DATA_TIMEOUT_MS rejects.
  */
 export function useBlockRows(input: UseBlockRowsInput): UseQueryResult<BoardDataResult> {
   const { definition, context, data, tableId, viewId, live } = input;
@@ -41,17 +67,23 @@ export function useBlockRows(input: UseBlockRowsInput): UseQueryResult<BoardData
       tableId ?? null,
       viewId ?? null,
     ],
-    enabled: tableId !== undefined && source !== undefined,
-    retry: (count, error) => !isNotImplementedError(error) && count < 2,
+    // A table that is not a data source must surface as an error, never as an endless skeleton.
+    enabled: tableId !== undefined,
+    retry: (count, error) =>
+      !isNotImplementedError(error) && !(error instanceof BlockSourceError) && count < 2,
     refetchInterval: live ? POLLING_INTERVAL_MS : false,
     queryFn: async () => {
-      if (!tableId || !source) throw new Error("Table is not a data source of this board");
-      return data.query({
-        context,
-        sourceId: source.alias,
-        tableId,
-        ...(viewId ? { viewId } : {}),
-      });
+      if (!tableId || !source)
+        throw new BlockSourceError("Table is not a data source of this board");
+      return withTimeout(
+        data.query({
+          context,
+          sourceId: source.alias,
+          tableId,
+          ...(viewId ? { viewId } : {}),
+        }),
+        BLOCK_DATA_TIMEOUT_MS,
+      );
     },
   });
 }

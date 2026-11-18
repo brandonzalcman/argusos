@@ -79,7 +79,7 @@ export function assertJsonValue(value: unknown, maxBytes: number): void {
 }
 
 function parseEnvelope(o: Obj): PluginMessageEnvelope {
-  if (o["protocolVersion"] !== PLUGIN_PROTOCOL_VERSION) fail("unsupported protocol version");
+  if (o.protocolVersion !== PLUGIN_PROTOCOL_VERSION) fail("unsupported protocol version");
   return {
     protocolVersion: PLUGIN_PROTOCOL_VERSION,
     pluginId: strField(o, "pluginId"),
@@ -109,7 +109,7 @@ function fieldIdList(o: Obj, key: string): readonly string[] | null {
 
 function parseRecord(value: unknown, maxBytes: number): HostRecord {
   if (!isObj(value)) fail("record");
-  const values = value["values"];
+  const values = value.values;
   if (!isObj(values)) fail("values");
   assertJsonValue(values, maxBytes);
   return {
@@ -147,10 +147,14 @@ export function parseHostToPluginMessage(
   maxBytes: number = DEFAULT_MAX_MESSAGE_BYTES,
 ): HostToPluginMessage {
   const { o, env } = parseCommon(input, maxBytes);
-  switch (o["kind"]) {
+  switch (o.kind) {
     case "host.hello": {
-      const caps = o["grantedCapabilities"];
-      if (!Array.isArray(caps) || caps.length > 32 || caps.some((c: unknown) => typeof c !== "string")) {
+      const caps = o.grantedCapabilities;
+      if (
+        !Array.isArray(caps) ||
+        caps.length > 32 ||
+        caps.some((c: unknown) => typeof c !== "string")
+      ) {
         fail("grantedCapabilities");
       }
       return {
@@ -162,7 +166,7 @@ export function parseHostToPluginMessage(
       };
     }
     case "record.result": {
-      const record = o["record"];
+      const record = o.record;
       return {
         ...env,
         kind: "record.result",
@@ -177,12 +181,12 @@ export function parseHostToPluginMessage(
         kind: "record.changed",
         subscriptionId: strField(o, "subscriptionId"),
         cursor: strField(o, "cursor"),
-        record: parseRecord(o["record"], maxBytes),
+        record: parseRecord(o.record, maxBytes),
       };
     case "host.acknowledged":
       return { ...env, kind: "host.acknowledged" };
     case "host.error": {
-      const code = o["code"] as HostErrorMessage["code"];
+      const code = o.code as HostErrorMessage["code"];
       if (!HOST_ERROR_CODES.includes(code)) fail("error code");
       return {
         ...env,
@@ -208,9 +212,9 @@ export function parsePluginToHostMessage(
   maxBytes: number = DEFAULT_MAX_MESSAGE_BYTES,
 ): PluginToHostMessage {
   const { o, env } = parseCommon(input, maxBytes);
-  switch (o["kind"]) {
+  switch (o.kind) {
     case "plugin.hello": {
-      const versions = o["supportedProtocolVersions"];
+      const versions = o.supportedProtocolVersions;
       if (
         !Array.isArray(versions) ||
         versions.length > 8 ||
@@ -236,7 +240,7 @@ export function parsePluginToHostMessage(
         fieldIds: fieldIdList(o, "fieldIds"),
       };
     case "record.update": {
-      const values = o["values"];
+      const values = o.values;
       if (!isObj(values)) fail("values");
       return {
         ...env,
@@ -259,7 +263,7 @@ export function parsePluginToHostMessage(
     case "record.unsubscribe":
       return { ...env, kind: "record.unsubscribe", subscriptionId: strField(o, "subscriptionId") };
     case "plugin.dispose": {
-      const reason = o["reason"];
+      const reason = o.reason;
       if (
         reason !== "navigation" &&
         reason !== "logout" &&

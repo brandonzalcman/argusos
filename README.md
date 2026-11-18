@@ -71,7 +71,7 @@ tests/        Cross-workspace E2E, integration and load contracts
 
 Every stub documents its responsibility and integration seams. Use `TODO(implementation)` for missing behavior, `TODO(decision)` for product decisions and `TODO(verify)` for assumptions requiring validation. Tests use todo/skip markers until they assert real behavior; an empty or todo-only suite is not evidence that a feature works.
 
-Implementation order and security invariants are in [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md). Project conventions are in [AGENTS.md](AGENTS.md).
+Implementation order and security invariants are in [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md). Project conventions are in [AGENTS.md](AGENTS.md). To run the session and studio API locally without Docker, see [docs/development/api-local.md](docs/development/api-local.md).
 
 ## Open decisions
 

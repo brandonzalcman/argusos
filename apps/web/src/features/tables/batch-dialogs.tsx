@@ -66,12 +66,20 @@ export function PasteDialog({
               </li>
               {plan.unchangedCells > 0 ? (
                 <li>
-                  <StatusPill status="stale" label={`${plan.unchangedCells} already match`} size="sm" />
+                  <StatusPill
+                    status="stale"
+                    label={`${plan.unchangedCells} already match`}
+                    size="sm"
+                  />
                 </li>
               ) : null}
               {plan.readOnlyCells > 0 ? (
                 <li>
-                  <StatusPill status="medium" label={`${plan.readOnlyCells} read-only skipped`} size="sm" />
+                  <StatusPill
+                    status="medium"
+                    label={`${plan.readOnlyCells} read-only skipped`}
+                    size="sm"
+                  />
                 </li>
               ) : null}
               {plan.overflowRows > 0 ? (
@@ -210,9 +218,7 @@ export function BulkEditDialog({
               loading={applying}
               disabled={!canApply}
               onClick={() =>
-                plan?.ok && field
-                  ? onConfirm(plan.updates, `Bulk edit ${field.name}`)
-                  : undefined
+                plan?.ok && field ? onConfirm(plan.updates, `Bulk edit ${field.name}`) : undefined
               }
             >
               {plan?.ok
@@ -240,10 +246,7 @@ export function BulkEditDialog({
             </NativeSelect>
           </Field>
           {field ? (
-            <Field
-              label="New value"
-              {...(plan && !plan.ok ? { error: plan.message } : {})}
-            >
+            <Field label="New value" {...(plan && !plan.ok ? { error: plan.message } : {})}>
               <ValueInput field={field} value={raw} onChange={setRaw} />
             </Field>
           ) : null}

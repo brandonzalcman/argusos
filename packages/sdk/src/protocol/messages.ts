@@ -121,7 +121,7 @@ export type HostToPluginMessage =
 export {
   assertJsonValue,
   DEFAULT_MAX_MESSAGE_BYTES,
+  ProtocolError,
   parseHostToPluginMessage,
   parsePluginToHostMessage,
-  ProtocolError,
 } from "./parse.js";

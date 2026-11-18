@@ -8,6 +8,7 @@ import {
   ConnectionMode,
   Controls,
   type Edge,
+  type EdgeChange,
   Handle,
   MarkerType,
   MiniMap,
@@ -16,11 +17,9 @@ import {
   type NodeProps,
   Position,
   ReactFlow,
-  type EdgeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { memo, type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
-import { TRIGGER_NODE_ID } from "./graph-editor.js";
 import {
   branchesFor,
   type EdgeBranch,
@@ -30,9 +29,10 @@ import {
   STEP_TYPE_LABELS,
   TRIGGER_TYPE_LABELS,
 } from "./graph.js";
+import { TRIGGER_NODE_ID } from "./graph-editor.js";
 import "./workflow-canvas.css";
 
-const COLUMN_WIDTH = 320;
+const COLUMN_WIDTH = 300;
 const ROW_HEIGHT = 170;
 
 type NodeKind = "trigger" | "condition" | "action";
@@ -60,7 +60,7 @@ function BranchHandles({
       {branches.map((branch) => (
         <div
           key={branch}
-          className="relative flex h-5 items-center justify-end pe-1 font-mono text-xs text-fg-muted"
+          className="relative flex h-5 items-center justify-end pe-4 font-mono text-xs text-fg-muted"
         >
           {branch}
           <Handle
@@ -85,7 +85,10 @@ function nodeShell(selected: boolean, hasIssue: boolean): string {
   );
 }
 
-const TriggerNode = memo(function TriggerNode({ data, selected }: NodeProps<FlowNode>): ReactElement {
+const TriggerNode = memo(function TriggerNode({
+  data,
+  selected,
+}: NodeProps<FlowNode>): ReactElement {
   return (
     <div className={nodeShell(selected, false)}>
       <p className="text-xs font-semibold tracking-wider text-fg-muted uppercase">Trigger</p>
@@ -142,7 +145,11 @@ export interface GraphCanvasProps {
   readonly readOnly?: boolean;
   readonly onSelect: (id: string) => void;
   /** Connect (or, with a null target, disconnect) one branch of a step. */
-  readonly onConnect: (sourceStepId: string, branch: EdgeBranch, targetStepId: string | null) => void;
+  readonly onConnect: (
+    sourceStepId: string,
+    branch: EdgeBranch,
+    targetStepId: string | null,
+  ) => void;
   /** A step was deleted with the keyboard; the host confirms before removing it. */
   readonly onRequestDelete: (stepId: string) => void;
 }
@@ -166,7 +173,10 @@ export function GraphCanvas({
   onRequestDelete,
 }: GraphCanvasProps): ReactElement {
   const { resolvedTheme } = useUIPreferences();
-  const [positions, setPositions] = useState<Readonly<Record<string, { x: number; y: number }>>>({});
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [positions, setPositions] = useState<Readonly<Record<string, { x: number; y: number }>>>(
+    {},
+  );
   const issueIds = useMemo(() => new Set(issues.map((i) => i.stepId).filter(Boolean)), [issues]);
 
   const baseNodes = useMemo<FlowNode[]>(() => {
@@ -179,7 +189,7 @@ export function GraphCanvas({
         id: step.id,
         type: step.type === "condition" ? "condition" : "action",
         position: positions[step.id] ?? { x: depth * COLUMN_WIDTH, y: row * ROW_HEIGHT },
-        selected: step.id === selectedId,
+        selected: selectedEdgeId === null && step.id === selectedId,
         deletable: !readOnly,
         draggable: true,
         ariaLabel: `${STEP_TYPE_LABELS[step.type]}: ${step.name}`,
@@ -196,7 +206,7 @@ export function GraphCanvas({
       id: TRIGGER_NODE_ID,
       type: "trigger",
       position: positions[TRIGGER_NODE_ID] ?? { x: 0, y: 0 },
-      selected: selectedId === TRIGGER_NODE_ID,
+      selected: selectedEdgeId === null && selectedId === TRIGGER_NODE_ID,
       deletable: false,
       ariaLabel: `Trigger: ${TRIGGER_TYPE_LABELS[trigger.type]}`,
       data: {
@@ -208,7 +218,7 @@ export function GraphCanvas({
       },
     };
     return [triggerNode, ...stepNodes];
-  }, [steps, edges, trigger.type, positions, selectedId, issueIds, readOnly]);
+  }, [steps, edges, trigger.type, positions, selectedId, selectedEdgeId, issueIds, readOnly]);
 
   const [nodes, setNodes] = useState<FlowNode[]>(baseNodes);
   useEffect(() => setNodes(baseNodes), [baseNodes]);
@@ -222,6 +232,7 @@ export function GraphCanvas({
         sourceHandle: edge.branch,
         targetHandle: "in",
         ...(edge.branch === "next" ? {} : { label: edge.branch }),
+        selected: edge.id === selectedEdgeId,
         deletable: !readOnly,
         reconnectable: !readOnly,
         ...(edge.branch === "failed" ? { className: "argus-flow-edge-failed" } : {}),
@@ -245,7 +256,7 @@ export function GraphCanvas({
       }),
     );
     return [...implicit, ...real];
-  }, [steps, edges, readOnly]);
+  }, [steps, edges, readOnly, selectedEdgeId]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<FlowNode>[]) => {
@@ -291,7 +302,10 @@ export function GraphCanvas({
     (oldEdge: Edge, connection: Connection) => {
       if (readOnly || !connection.sourceHandle) return;
       const old = edges.find((e) => e.id === oldEdge.id);
-      if (old && (old.sourceStepId !== connection.source || old.branch !== connection.sourceHandle)) {
+      if (
+        old &&
+        (old.sourceStepId !== connection.source || old.branch !== connection.sourceHandle)
+      ) {
         onConnect(old.sourceStepId, old.branch, null);
       }
       onConnect(connection.source, connection.sourceHandle as EdgeBranch, connection.target);
@@ -301,7 +315,7 @@ export function GraphCanvas({
 
   return (
     <div
-      className="argus-flow h-[32rem] min-h-80 overflow-hidden rounded-md border border-border bg-surface-sunken"
+      className="argus-flow h-[26rem] min-h-72 overflow-hidden rounded-md border border-border bg-surface-sunken"
       data-testid="workflow-canvas"
     >
       <ReactFlow
@@ -310,8 +324,7 @@ export function GraphCanvas({
         edges={flowEdges}
         nodeTypes={nodeTypes}
         colorMode={resolvedTheme === "light" ? "light" : "dark"}
-        fitView
-        fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+        defaultViewport={{ x: 24, y: 24, zoom: 0.9 }}
         minZoom={0.25}
         maxZoom={1.75}
         nodesConnectable={!readOnly}
@@ -324,13 +337,21 @@ export function GraphCanvas({
         onEdgesChange={onEdgesChange}
         onConnect={onConnectEdge}
         onReconnect={onReconnect}
-        onNodeClick={(_event, node) => onSelect(node.id)}
-        onPaneClick={() => onSelect(TRIGGER_NODE_ID)}
+        onNodeClick={(_event, node) => {
+          setSelectedEdgeId(null);
+          onSelect(node.id);
+        }}
+        onEdgeClick={(_event, edge) => setSelectedEdgeId(edge.id)}
+        onPaneClick={() => {
+          setSelectedEdgeId(null);
+          onSelect(TRIGGER_NODE_ID);
+        }}
       >
         <Background gap={20} />
         <Controls showInteractive={false} position="bottom-left" />
         <MiniMap
           pannable
+          style={{ width: 150, height: 96 }}
           zoomable
           ariaLabel="Workflow minimap"
           nodeClassName={(node) => `argus-flow-minimap-${(node.type ?? "action") as string}`}

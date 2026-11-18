@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./router-types": {
+      "types": "./dist/router-types.d.ts",
+      "import": "./dist/router-types.js"
     }
   },
   "scripts": {
@@ -16,7 +20,9 @@
     "test": "vitest run",
     "start": "node dist/main.js",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "db:migrate": "tsx src/scripts/migrate.ts"
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "dev:local": "tsx watch --env-file-if-exists=../../.env src/main.ts",
+    "db:seed": "tsx --env-file-if-exists=../../.env src/scripts/seed-dev.ts"
   },
   "dependencies": {
     "@argus/expr": "workspace:*",

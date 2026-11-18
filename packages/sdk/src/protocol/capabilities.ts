@@ -100,7 +100,15 @@ export function requirePluginFields(
   resource: Omit<CapabilityResource, "fieldId">,
   fieldIds: readonly string[],
 ): void {
-  requirePluginCapability(scope, capability, resource);
+  if (fieldIds.length === 0) {
+    // Table-level access still requires at least one grantable field.
+    const granted = grantedFieldIds(scope, capability, resource);
+    const first = granted === null ? undefined : granted[0];
+    if (granted === null) requirePluginCapability(scope, capability, resource);
+    else if (first === undefined) throw new CapabilityDeniedError();
+    else requirePluginCapability(scope, capability, { ...resource, fieldId: first });
+    return;
+  }
   for (const fieldId of fieldIds) {
     requirePluginCapability(scope, capability, { ...resource, fieldId });
   }
@@ -159,7 +167,11 @@ export function grantsFromComponentCapabilities(
 ): CapabilityGrant[] {
   const grants: CapabilityGrant[] = [];
   for (const cap of capabilities) {
-    if (cap.type === "read-records" || cap.type === "update-records" || cap.type === "subscribe-records") {
+    if (
+      cap.type === "read-records" ||
+      cap.type === "update-records" ||
+      cap.type === "subscribe-records"
+    ) {
       grants.push({
         capability: COMPONENT_CAPABILITY_MAP[cap.type],
         tableIds: [...cap.tableIds],

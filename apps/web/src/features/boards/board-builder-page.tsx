@@ -4,27 +4,19 @@ import {
   type BlockRenderContext,
   coreBlockRegistry,
 } from "@argus/blocks";
-import {
-  Button,
-  Card,
-  Kbd,
-  PageContainer,
-  PageHeader,
-  Panel,
-  Select,
-  Tooltip,
-} from "@argus/ui";
+import { Button, Card, Kbd, PageContainer, PageHeader, Panel, Select, Tooltip } from "@argus/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
-  type KeyboardEvent,
   type ReactElement,
   useCallback,
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
 } from "react";
+import { useDevMode } from "../studio/dev-mode.js";
 import "./boards.css";
 import { useBoardIdParam } from "./board-runtime-page.js";
 import { BuilderCanvas, PALETTE_MIME } from "./builder-canvas.js";
@@ -35,8 +27,11 @@ import {
   readSessionClipboard,
   writeSessionClipboard,
 } from "./clipboard.js";
+import { resolveCodeAccess } from "./code-mode.js";
+import { BlockPicker, type BuilderMode, BundleCodeView, ModeSwitch } from "./code-panes.js";
 import { addBlock, moveBlockTo, nudgeBlock, removeBlock, setBlockHidden } from "./draft.js";
 import { useBoardsEnvironment } from "./environment.js";
+import { useBuilderExtensions } from "./extensions.js";
 import { canRedo, canUndo } from "./history.js";
 import { Inspector } from "./inspector.js";
 import { layoutFor, moveGroup, withBreakpointItems } from "./layout-ops.js";
@@ -89,15 +84,20 @@ function BuilderWorkspace({
   boardId,
   initial,
   hasDraft,
+  boardEdit,
 }: {
   readonly boardId: string;
   readonly initial: BoardBundle;
   readonly hasDraft: boolean;
+  /** Server-authoritative per-board edit permission (undefined while unknown). */
+  readonly boardEdit: boolean | undefined;
 }): ReactElement {
   const { scope, data, repository, expressions } = useBoardsEnvironment();
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(builderReducer, initial, createBuilderState);
-  const [clipboardCount, setClipboardCount] = useState(() => readSessionClipboard()?.blocks.length ?? 0);
+  const [clipboardCount, setClipboardCount] = useState(
+    () => readSessionClipboard()?.blocks.length ?? 0,
+  );
   const [pasteWarnings, setPasteWarnings] = useState<readonly string[]>([]);
   const bundle = state.history.present;
   const dirty = isDirty(state);
@@ -107,6 +107,18 @@ function BuilderWorkspace({
   const selectedItem = items.find((i) => i.blockId === state.selectedId);
   const multi = state.selectedIds.length > 1;
   const preview = usePositionPreview(boardId, bundle.definition.version);
+  const devMode = useDevMode();
+  const extensions = useBuilderExtensions();
+  const codeAccess = resolveCodeAccess({
+    devModeEnabled: devMode.enabled,
+    editDefinitions: devMode.permissions.editDefinitions,
+    editCode: devMode.permissions.editCode,
+    boardEdit,
+  });
+  const [requestedMode, setMode] = useState<BuilderMode>("design");
+  // Code mode only exists in dev mode; switching dev mode off returns to the visual builder.
+  const mode: BuilderMode = codeAccess.visible ? requestedMode : "design";
+  const codeMode = mode === "code";
 
   const context = useMemo<BlockRenderContext | null>(
     () =>
@@ -116,7 +128,9 @@ function BuilderWorkspace({
             boardId,
             definitionVersion: bundle.definition.version,
             mode: "builder",
-            ...(preview.selectedPositionId ? { previewPositionId: preview.selectedPositionId } : {}),
+            ...(preview.selectedPositionId
+              ? { previewPositionId: preview.selectedPositionId }
+              : {}),
           }
         : null,
     [scope, boardId, bundle.definition.version, preview.selectedPositionId],
@@ -177,9 +191,17 @@ function BuilderWorkspace({
   const blockName = (id: string): string =>
     bundle.definition.blocks.find((b) => b.id === id)?.name ?? id;
 
-  const moveSelection = (ids: readonly string[], dx: number, dy: number, announce: string): void => {
+  const moveSelection = (
+    ids: readonly string[],
+    dx: number,
+    dy: number,
+    announce: string,
+  ): void => {
     const moved = moveGroup(layoutFor(bundle.layout, state.breakpoint), new Set(ids), dx, dy);
-    edit({ ...bundle, layout: withBreakpointItems(bundle.layout, state.breakpoint, moved) }, { announce });
+    edit(
+      { ...bundle, layout: withBreakpointItems(bundle.layout, state.breakpoint, moved) },
+      { announce },
+    );
   };
 
   const removeSelection = (ids: readonly string[]): void => {
@@ -195,14 +217,19 @@ function BuilderWorkspace({
     if (!clip) return;
     writeSessionClipboard(clip);
     setClipboardCount(clip.blocks.length);
-    dispatch({ type: "edit", next: bundle, at: Date.now(), announce: `Copied ${clip.blocks.length} block${clip.blocks.length === 1 ? "" : "s"}.` });
+    dispatch({
+      type: "announce",
+      message: `Copied ${clip.blocks.length} block${clip.blocks.length === 1 ? "" : "s"}.`,
+    });
   };
 
   const pasteClipboard = (clip = readSessionClipboard()): void => {
     if (!clip) return;
     const result = pasteBlocks(bundle, clip, () => crypto.randomUUID());
     setPasteWarnings(result.warnings);
-    edit(result.bundle, { announce: `Pasted ${result.newIds.length} block${result.newIds.length === 1 ? "" : "s"}.` });
+    edit(result.bundle, {
+      announce: `Pasted ${result.newIds.length} block${result.newIds.length === 1 ? "" : "s"}.`,
+    });
     dispatch({ type: "select-many", ids: result.newIds });
   };
 
@@ -211,7 +238,7 @@ function BuilderWorkspace({
     if (clip) pasteClipboard(clip);
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+  const onKeyDown = (event: globalThis.KeyboardEvent): void => {
     const mod = event.ctrlKey || event.metaKey;
     const key = event.key.toLowerCase();
     if (mod && key === "s") {
@@ -243,12 +270,20 @@ function BuilderWorkspace({
     }
   };
 
+  // Workspace shortcuts listen on the window so they work wherever focus is (but not in fields).
+  const keyHandler = useRef(onKeyDown);
+  keyHandler.current = onKeyDown;
+  useEffect(() => {
+    const listener = (event: globalThis.KeyboardEvent): void => keyHandler.current(event);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
+
   const hiddenItems = items.filter((i) => i.hidden);
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: workspace-level undo/redo/save/copy shortcuts
     <PageContainer width="full">
-      <div className="grid gap-(--argus-gap)" onKeyDown={onKeyDown}>
+      <div className="grid gap-(--argus-gap)">
         <PageHeader
           title={bundle.definition.name}
           breadcrumbs={[
@@ -296,14 +331,26 @@ function BuilderWorkspace({
         />
 
         <Card className="flex flex-wrap items-center gap-2 p-2">
-          <div role="toolbar" aria-label="Builder actions" className="flex flex-wrap items-center gap-2">
-            <Tooltip content="Undo" shortcut="Ctrl+Z">
-              <Button size="sm" disabled={!canUndo(state.history)} onClick={() => dispatch({ type: "undo" })}>
+          <div
+            role="toolbar"
+            aria-label="Builder actions"
+            className="flex flex-wrap items-center gap-2"
+          >
+            <Tooltip content="Undo" shortcut={["Ctrl", "Z"]}>
+              <Button
+                size="sm"
+                disabled={!canUndo(state.history)}
+                onClick={() => dispatch({ type: "undo" })}
+              >
                 Undo
               </Button>
             </Tooltip>
-            <Tooltip content="Redo" shortcut="Ctrl+Shift+Z">
-              <Button size="sm" disabled={!canRedo(state.history)} onClick={() => dispatch({ type: "redo" })}>
+            <Tooltip content="Redo" shortcut={["Ctrl", "Shift", "Z"]}>
+              <Button
+                size="sm"
+                disabled={!canRedo(state.history)}
+                onClick={() => dispatch({ type: "redo" })}
+              >
                 Redo
               </Button>
             </Tooltip>
@@ -323,20 +370,29 @@ function BuilderWorkspace({
             >
               Revert to saved
             </Button>
-            <Button size="sm" variant="primary" disabled={!dirty} loading={save.isPending} onClick={() => save.mutate()}>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={!dirty}
+              loading={save.isPending}
+              onClick={() => save.mutate()}
+            >
               Save draft
             </Button>
           </div>
           <span className="flex-1" />
+          {codeAccess.visible ? <ModeSwitch value={mode} onChange={setMode} /> : null}
           <div className="flex items-center gap-2">
-            <span className="text-fg-muted" id="boards-layout-label">
+            <span className="whitespace-nowrap text-fg-muted" id="boards-layout-label">
               Layout for
             </span>
             <Select
               size="sm"
               aria-label="Layout breakpoint"
               value={state.breakpoint}
-              onValueChange={(value) => dispatch({ type: "breakpoint", value: value as LayoutBreakpoint })}
+              onValueChange={(value) =>
+                dispatch({ type: "breakpoint", value: value as LayoutBreakpoint })
+              }
               options={breakpoints.map((bp) => ({ value: bp.value, label: bp.label }))}
             />
           </div>
@@ -359,59 +415,89 @@ function BuilderWorkspace({
           </div>
         ) : null}
 
-        <p className="text-fg-muted">
-          Keyboard: focus a block, then <Kbd>Alt</Kbd>+arrows move it, <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>
-          +arrows resize it, <Kbd>Delete</Kbd> removes it. <Kbd>Shift</Kbd>/<Kbd>Ctrl</Kbd>+click or{" "}
-          <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> selects several; <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> /{" "}
-          <Kbd>V</Kbd> / <Kbd>D</Kbd> copy, paste, duplicate; <Kbd>Ctrl</Kbd>+<Kbd>Z</Kbd> undoes;{" "}
-          <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd> saves. The properties panel has numeric and button controls
-          for every move and resize.
-        </p>
+        {codeMode ? (
+          <p className="text-fg-muted">
+            Code mode: edit the whole board as JSON in the centre, or pick a block and use the{" "}
+            <strong>Code</strong> tab in Properties. Apply is one undo step; invalid code is never
+            applied.
+            {codeAccess.editable ? "" : " Your position can view code but not change it."}
+          </p>
+        ) : (
+          <p className="text-fg-muted">
+            Keyboard: focus a block, then <Kbd>Alt</Kbd>+arrows move it, <Kbd>Alt</Kbd>+
+            <Kbd>Shift</Kbd>
+            +arrows resize it, <Kbd>Delete</Kbd> removes it. <Kbd>Shift</Kbd>/<Kbd>Ctrl</Kbd>+click
+            or <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> selects several; <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> /{" "}
+            <Kbd>V</Kbd> / <Kbd>D</Kbd> copy, paste, duplicate; <Kbd>Ctrl</Kbd>+<Kbd>Z</Kbd> undoes;{" "}
+            <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd> saves. The properties panel has numeric and button controls
+            for every move and resize.
+          </p>
+        )}
         <p className="sr-only" role="status" aria-live="polite">
           {state.announcement}
         </p>
 
-        <div className="boards-builder">
-          <nav aria-label="Block palette" className="boards-pane boards-pane-sticky">
+        <div className="boards-builder" data-mode={mode}>
+          <nav
+            aria-label={codeMode ? "Board blocks" : "Block palette"}
+            className="boards-pane boards-pane-sticky"
+          >
             <Panel title="Blocks" headingLevel={2}>
-              <div className="grid gap-3">
-                {groupByCategory(registry).map(([category, modules]) => (
-                  <section key={category} aria-label={categoryLabels[category]} className="grid gap-2">
-                    <h3 className="text-xs font-semibold tracking-wide text-fg-muted uppercase">
-                      {categoryLabels[category]}
-                    </h3>
-                    {modules.map((module) => (
-                      // biome-ignore lint/a11y/noStaticElementInteractions: drag is a pointer shortcut; the Add button is the keyboard path
-                      <div
-                        key={module.kind}
-                        className="flex cursor-grab items-center justify-between gap-2 rounded-sm border border-border bg-surface p-2"
-                        draggable
-                        onDragStart={(event) => {
-                          event.dataTransfer.setData(PALETTE_MIME, module.kind);
-                          event.dataTransfer.effectAllowed = "copy";
-                        }}
-                      >
-                        <div>
-                          <strong className="text-sm">{module.displayName}</strong>
-                          <p className="text-xs text-fg-muted">{module.description}</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          aria-label={`Add ${module.displayName} to board`}
-                          onClick={() => addFromPalette(module.kind)}
+              {codeMode ? (
+                <BlockPicker
+                  blocks={bundle.definition.blocks}
+                  selectedId={state.selectedId}
+                  onSelect={(id) => dispatch({ type: "select", id })}
+                />
+              ) : (
+                <div className="grid gap-3">
+                  {groupByCategory(registry).map(([category, modules]) => (
+                    <section
+                      key={category}
+                      aria-label={categoryLabels[category]}
+                      className="grid gap-2"
+                    >
+                      <h3 className="text-xs font-semibold tracking-wide text-fg-muted uppercase">
+                        {categoryLabels[category]}
+                      </h3>
+                      {modules.map((module) => (
+                        // biome-ignore lint/a11y/noStaticElementInteractions: drag is a pointer shortcut; the Add button is the keyboard path
+                        <div
+                          key={module.kind}
+                          className="flex cursor-grab items-center justify-between gap-2 rounded-sm border border-border bg-surface p-2"
+                          draggable
+                          onDragStart={(event) => {
+                            event.dataTransfer.setData(PALETTE_MIME, module.kind);
+                            event.dataTransfer.effectAllowed = "copy";
+                          }}
                         >
-                          Add
-                        </Button>
-                      </div>
-                    ))}
-                  </section>
-                ))}
-              </div>
+                          <div>
+                            <strong className="text-sm">{module.displayName}</strong>
+                            <p className="text-xs text-fg-muted">{module.description}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            aria-label={`Add ${module.displayName} to board`}
+                            onClick={() => addFromPalette(module.kind)}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              )}
             </Panel>
           </nav>
 
-          <div className="boards-pane">
-            {context ? (
+          <div className="boards-pane boards-code-pane">
+            {codeMode ? (
+              <Panel title="Board code" headingLevel={2}>
+                <BundleCodeView bundle={bundle} editable={codeAccess.editable} onEdit={edit} />
+              </Panel>
+            ) : null}
+            {!codeMode && context ? (
               <BuilderCanvas
                 bundle={bundle}
                 items={items}
@@ -423,13 +509,19 @@ function BuilderWorkspace({
                 registry={registry}
                 context={context}
                 data={data}
-                onSelect={(id, additive) => dispatch({ type: "select", id, toggle: additive === true })}
+                onSelect={(id, additive) =>
+                  dispatch({ type: "select", id, toggle: additive === true })
+                }
                 onPlace={(id, rect, announce) =>
                   edit(moveBlockTo(bundle, state.breakpoint, id, rect), { announce })
                 }
                 onMoveGroup={moveSelection}
                 onNudge={(id, delta, announce) => {
-                  const groupMove = selection.length > 1 && selection.includes(id) && delta.dw === undefined && delta.dh === undefined;
+                  const groupMove =
+                    selection.length > 1 &&
+                    selection.includes(id) &&
+                    delta.dw === undefined &&
+                    delta.dh === undefined;
                   if (groupMove) {
                     moveSelection(selection, delta.dx ?? 0, delta.dy ?? 0, announce);
                   } else {
@@ -440,7 +532,7 @@ function BuilderWorkspace({
                 onDropKind={addFromPalette}
               />
             ) : null}
-            {hiddenItems.length > 0 ? (
+            {!codeMode && hiddenItems.length > 0 ? (
               <Panel title={`Hidden on ${state.breakpoint}`} headingLevel={2}>
                 <ul className="grid gap-2">
                   {hiddenItems.map((item) => (
@@ -466,7 +558,7 @@ function BuilderWorkspace({
           <div className="boards-pane boards-pane-sticky">
             <Panel title="Properties" headingLevel={2}>
               {multi ? (
-                <div className="grid gap-2" role="group" aria-label="Selection">
+                <section className="grid gap-2" aria-label="Selection">
                   <p>
                     <strong>{selection.length} blocks selected</strong>
                   </p>
@@ -490,7 +582,7 @@ function BuilderWorkspace({
                     Drag any selected block, or use Alt+arrows, to move the group. Select a single
                     block to edit its properties.
                   </p>
-                </div>
+                </section>
               ) : (
                 <Inspector
                   key={state.selectedId ?? "board"}
@@ -501,6 +593,10 @@ function BuilderWorkspace({
                   validator={expressions}
                   displayName={selectedBlock ? safeDisplayName(registry, selectedBlock.type) : ""}
                   onEdit={edit}
+                  {...(codeAccess.visible ? { code: { editable: codeAccess.editable } } : {})}
+                  {...(codeAccess.canEject && extensions.ejectBlock
+                    ? { onEjectBlock: extensions.ejectBlock }
+                    : {})}
                 />
               )}
             </Panel>
@@ -539,17 +635,28 @@ export function BoardBuilderPage(): ReactElement {
   if (!scope) return shell(<NoScopeState />);
   if (summary && !summary.permissions.edit) {
     return shell(
-      <ErrorState title="You cannot edit this board" error={new Error("Your position does not have edit access.")} />,
+      <ErrorState
+        title="You cannot edit this board"
+        error={new Error("Your position does not have edit access.")}
+      />,
     );
   }
   if (draft.isError) {
     return shell(
-      <ErrorState title="Could not load the draft" error={draft.error} onRetry={() => void draft.refetch()} />,
+      <ErrorState
+        title="Could not load the draft"
+        error={draft.error}
+        onRetry={() => void draft.refetch()}
+      />,
     );
   }
   if (draft.data === null && published.isError) {
     return shell(
-      <ErrorState title="Could not load the board" error={published.error} onRetry={() => void published.refetch()} />,
+      <ErrorState
+        title="Could not load the board"
+        error={published.error}
+        onRetry={() => void published.refetch()}
+      />,
     );
   }
   const initial = draft.data ?? published.data;
@@ -562,6 +669,7 @@ export function BoardBuilderPage(): ReactElement {
       boardId={boardId}
       initial={initial}
       hasDraft={draft.data !== null && draft.data !== undefined}
+      boardEdit={summary?.permissions.edit}
     />
   );
 }

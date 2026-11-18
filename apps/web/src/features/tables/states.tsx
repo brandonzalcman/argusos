@@ -1,10 +1,4 @@
-import {
-  ConnectionIndicator,
-  ErrorState,
-  Skeleton,
-  SkeletonGroup,
-  StatusPill,
-} from "@argus/ui";
+import { ConnectionIndicator, ErrorState, Skeleton, SkeletonGroup, StatusPill } from "@argus/ui";
 import type { ReactElement } from "react";
 import type { SyncInfo } from "./tables-port.js";
 
@@ -19,7 +13,6 @@ export function LoadingSkeleton({
   return (
     <SkeletonGroup label={label} className="grid gap-2">
       {Array.from({ length: rows }, (_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton rows have no identity.
         <Skeleton key={i} className="h-9 w-full" />
       ))}
     </SkeletonGroup>

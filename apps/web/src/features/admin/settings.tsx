@@ -1,19 +1,197 @@
-import { DensityControl } from "@argus/ui";
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  DensityControl,
+  EmptyState,
+  Field,
+  PageContainer,
+  PageHeader,
+  Panel,
+  Select,
+  Switch,
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableStateRow,
+} from "@argus/ui";
+import { CircleCheck, LogOut, Trash2 } from "@argus/ui/icons";
 import { Link } from "@tanstack/react-router";
-import { type ReactElement, useId, useState } from "react";
-import { PageHeader } from "../workflows/status-views.js";
+import { type ReactElement, useState } from "react";
+import { useFeatureSession } from "../workflows/feature-scope.js";
+import { formatTimestamp } from "../workflows/format.js";
+import type { AccountSession } from "../workflows/local-types.js";
+import { ErrorState, LoadingSkeleton, SessionUnavailable } from "../workflows/status-views.js";
+import { useAccountSessions, useRevokeSession } from "./account-ports.js";
 import { useAdminSave, useClearOfflineData, usePreferences } from "./admin-queries.js";
 import type { UserPreferences } from "./admin-service.js";
 import { QueryGate } from "./query-gate.js";
-import { DraftToolbar, useDraft } from "./use-draft.js";
+import { DraftActions, DraftConflict, useDraft } from "./use-draft.js";
 
 const LOCALES: readonly { tag: string; label: string; rtl: boolean }[] = [
   { tag: "en", label: "English", rtl: false },
   { tag: "es", label: "Español", rtl: false },
   { tag: "fr", label: "Français", rtl: false },
-  { tag: "ar", label: "العربية", rtl: true },
-  { tag: "he", label: "עברית", rtl: true },
+  { tag: "ar", label: "العربية (Arabic)", rtl: true },
+  { tag: "he", label: "עברית (Hebrew)", rtl: true },
 ];
+
+const MOTION_OPTIONS = [
+  { value: "system", label: "Follow system setting" },
+  { value: "reduce", label: "Reduce motion" },
+  { value: "allow", label: "Allow motion" },
+];
+
+function SessionsPanel(): ReactElement {
+  const session = useFeatureSession();
+  const query = useAccountSessions();
+  const revoke = useRevokeSession();
+  const [revoking, setRevoking] = useState<AccountSession | null>(null);
+
+  let body: ReactElement;
+  if (!session) {
+    body = <SessionUnavailable />;
+  } else if (query.isPending) {
+    body = <LoadingSkeleton label="Loading sessions" rows={2} />;
+  } else if (query.isError) {
+    body = (
+      <ErrorState
+        title="Couldn't load your sessions"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        size="inline"
+      />
+    );
+  } else if (query.data.length === 0) {
+    body = (
+      <EmptyState
+        title="No sessions listed"
+        description="Signed-in devices appear here once session management is connected."
+      />
+    );
+  } else {
+    body = (
+      <TableContainer>
+        <Table>
+          <TableCaption className="sr-only">Your signed-in sessions</TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Device</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Last active</TableHead>
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {query.data.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell>
+                  <span className="flex flex-wrap items-center gap-2">
+                    {row.deviceLabel}
+                    {row.current ? (
+                      <Badge tone="success" icon={<CircleCheck />}>
+                        This device
+                      </Badge>
+                    ) : null}
+                  </span>
+                </TableCell>
+                <TableCell muted>{row.locationLabel ?? "Unknown"}</TableCell>
+                <TableCell mono>{formatTimestamp(row.lastActiveAt)}</TableCell>
+                <TableCell align="end">
+                  {row.current ? null : (
+                    <Button
+                      size="sm"
+                      leadingIcon={<LogOut aria-hidden="true" />}
+                      onClick={() => setRevoking(row)}
+                    >
+                      Sign out
+                      <span className="sr-only"> {row.deviceLabel}</span>
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {revoke.isError ? (
+              <TableStateRow colSpan={4}>
+                <ErrorState
+                  title="Couldn't sign that session out"
+                  error={revoke.error}
+                  size="inline"
+                />
+              </TableStateRow>
+            ) : null}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  }
+
+  return (
+    <Panel
+      title="Sessions"
+      description="Devices signed in to your account. Signing one out ends it immediately."
+      flush={query.isSuccess && query.data.length > 0}
+    >
+      {body}
+      <ConfirmDialog
+        open={revoking !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevoking(null);
+        }}
+        title="Sign this session out?"
+        itemName={revoking?.deviceLabel ?? ""}
+        description="That device must sign in again. This is recorded in the audit log."
+        confirmLabel="Sign out"
+        destructive
+        onConfirm={() => (revoking ? revoke.mutateAsync(revoking.id) : undefined)}
+      />
+    </Panel>
+  );
+}
+
+function OfflinePanel(): ReactElement {
+  const clear = useClearOfflineData();
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <Panel
+      title="Offline data"
+      description="Data cached on this device for offline use. Changes still waiting to sync are reported before anything is removed."
+    >
+      <div className="grid gap-3">
+        <div>
+          <Button leadingIcon={<Trash2 aria-hidden="true" />} onClick={() => setConfirming(true)}>
+            Clear offline data…
+          </Button>
+        </div>
+        {clear.isError ? (
+          <ErrorState title="Couldn't clear offline data" error={clear.error} size="inline" />
+        ) : null}
+        {clear.isSuccess ? (
+          <p role="status" className="flex items-center gap-1.5 text-base text-success">
+            <CircleCheck aria-hidden="true" className="size-4" /> Offline data cleared.
+          </p>
+        ) : null}
+      </div>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Clear offline data?"
+        itemName="Offline data on this device"
+        description="Cached records and drafts stored here are removed. Anything already synced stays on the server."
+        confirmLabel="Clear offline data"
+        destructive
+        onConfirm={() => clear.mutateAsync()}
+      />
+    </Panel>
+  );
+}
 
 function PreferencesEditor({
   preferences,
@@ -32,141 +210,108 @@ function PreferencesEditor({
     save.mutateAsync({ expectedVersion, definition }),
   );
   const { draft, edit } = controller;
-  const localeId = useId();
-  const motionName = useId();
-  const clear = useClearOfflineData();
-  const [confirmClear, setConfirmClear] = useState(false);
 
   return (
-    <div className="argus-stack">
-      <DraftToolbar controller={controller} />
-      <section className="argus-panel">
-        <h2 style={{ marginTop: 0 }}>Display</h2>
+    <PageContainer width="default">
+      <PageHeader
+        title="Settings"
+        description="Your display, language, sessions and offline preferences."
+        actions={<DraftActions controller={controller} />}
+        meta={
+          <span>
+            Tenant-wide theme, menu and homepage settings live in{" "}
+            <Link to="/admin" className="text-accent-text underline">
+              Administration
+            </Link>
+            .
+          </span>
+        }
+      />
+      <DraftConflict
+        controller={controller}
+        recordLabel="Your preferences"
+        describe={(mine, theirs) => [
+          {
+            fieldId: "density",
+            fieldLabel: "Density",
+            localValue: mine.density,
+            serverValue: theirs.density,
+          },
+          {
+            fieldId: "locale",
+            fieldLabel: "Language",
+            localValue: mine.locale,
+            serverValue: theirs.locale,
+          },
+        ]}
+      />
+      <Panel title="Display" bodyClassName="grid gap-4">
         <DensityControl
           value={draft.density}
           onChange={(density) => edit((c) => ({ ...c, density }))}
         />
-        <fieldset>
-          <legend>Motion</legend>
-          {(
-            [
-              ["system", "Follow system setting"],
-              ["reduce", "Reduce motion"],
-              ["allow", "Allow motion"],
-            ] as const
-          ).map(([value, label]) => (
-            <label key={value} style={{ display: "block" }}>
-              <input
-                type="radio"
-                name={motionName}
-                checked={draft.reducedMotion === value}
-                onChange={() => edit((c) => ({ ...c, reducedMotion: value }))}
-              />{" "}
-              {label}
-            </label>
-          ))}
-        </fieldset>
-      </section>
-
-      <section className="argus-panel">
-        <h2 style={{ marginTop: 0 }}>Language</h2>
-        <label htmlFor={localeId} style={{ display: "block", fontWeight: 600 }}>
-          Language
-        </label>
-        <select
-          id={localeId}
-          value={draft.locale}
-          onChange={(e) => {
-            const locale = LOCALES.find((l) => l.tag === e.target.value);
-            edit((c) => ({
-              ...c,
-              locale: e.target.value,
-              rightToLeft: locale ? locale.rtl : c.rightToLeft,
-            }));
-          }}
-        >
-          {LOCALES.map((l) => (
-            <option key={l.tag} value={l.tag}>
-              {l.label}
-            </option>
-          ))}
-          {LOCALES.some((l) => l.tag === draft.locale) ? null : (
-            <option value={draft.locale}>{draft.locale}</option>
-          )}
-        </select>
-        <label style={{ display: "block" }}>
-          <input
-            type="checkbox"
-            checked={draft.rightToLeft}
-            onChange={(e) => edit((c) => ({ ...c, rightToLeft: e.target.checked }))}
-          />{" "}
-          Right-to-left layout
-        </label>
-      </section>
-
-      <section className="argus-panel" aria-labelledby="offline-heading">
-        <h2 id="offline-heading" style={{ marginTop: 0 }}>
-          Offline data
-        </h2>
-        <p className="argus-muted">
-          Clearing removes data cached on this device. Changes still waiting to sync are reported
-          before anything is removed.
-        </p>
-        {confirmClear ? (
-          <div
-            role="alertdialog"
-            aria-label="Confirm clearing offline data"
-            className="argus-cluster"
-          >
-            <span>Clear all offline data on this device?</span>
-            <button
-              type="button"
-              onClick={() => clear.mutate(undefined, { onSettled: () => setConfirmClear(false) })}
-              disabled={clear.isPending}
-            >
-              Clear offline data
-            </button>
-            <button type="button" onClick={() => setConfirmClear(false)}>
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button type="button" onClick={() => setConfirmClear(true)}>
-            Clear offline data…
-          </button>
-        )}
-        {clear.isError ? (
-          <div role="alert" style={{ color: "var(--argus-color-danger)" }}>
-            ✕ {clear.error.message}
-          </div>
-        ) : null}
-        {clear.isSuccess ? <div role="status">✓ Offline data cleared.</div> : null}
-      </section>
-    </div>
+        <Field label="Motion" className="max-w-sm">
+          <Select
+            value={draft.reducedMotion}
+            options={MOTION_OPTIONS}
+            onValueChange={(reducedMotion) =>
+              edit((c) => ({
+                ...c,
+                reducedMotion: reducedMotion as UserPreferences["reducedMotion"],
+              }))
+            }
+          />
+        </Field>
+      </Panel>
+      <Panel title="Language" bodyClassName="grid gap-4">
+        <Field label="Language" className="max-w-sm">
+          <Select
+            value={draft.locale}
+            options={
+              LOCALES.some((l) => l.tag === draft.locale)
+                ? LOCALES.map((l) => ({ value: l.tag, label: l.label }))
+                : [
+                    ...LOCALES.map((l) => ({ value: l.tag, label: l.label })),
+                    { value: draft.locale, label: draft.locale },
+                  ]
+            }
+            onValueChange={(tag) => {
+              const locale = LOCALES.find((l) => l.tag === tag);
+              edit((c) => ({
+                ...c,
+                locale: tag,
+                rightToLeft: locale ? locale.rtl : c.rightToLeft,
+              }));
+            }}
+          />
+        </Field>
+        <Switch
+          label="Right-to-left layout"
+          checked={draft.rightToLeft}
+          onCheckedChange={(rightToLeft) => edit((c) => ({ ...c, rightToLeft }))}
+        />
+      </Panel>
+      <SessionsPanel />
+      <OfflinePanel />
+    </PageContainer>
   );
 }
 
 /**
- * User settings (/settings): density, motion, language/RTL and offline-data controls.
- * Errors: load/save failures and conflicts render inline; sessions management is TODO(implementation).
+ * User settings (/settings): density, motion, language/RTL, sessions and offline-data controls.
+ * Errors: load/save failures and conflicts render inline; sessions and logo use their own typed ports.
  */
 export function SettingsScreen(): ReactElement {
   const query = usePreferences();
   return (
-    <article className="argus-stack">
-      <PageHeader title="Settings" description="Your display, language and offline preferences.">
-        <p>
-          <Link to="/admin">Administration</Link> holds tenant-wide theme, menu and homepage
-          settings.
-        </p>
-      </PageHeader>
-      <QueryGate
-        query={query}
-        noun="preferences"
-        emptyDescription="No preferences are stored for this account yet."
-      >
-        {(preferences) => <PreferencesEditor key={preferences.version} preferences={preferences} />}
-      </QueryGate>
-    </article>
+    <QueryGate
+      query={query}
+      noun="preferences"
+      title="Settings"
+      description="Your display, language, sessions and offline preferences."
+      emptyDescription="No preferences are stored for this account yet."
+    >
+      {(preferences) => <PreferencesEditor key={preferences.version} preferences={preferences} />}
+    </QueryGate>
   );
 }

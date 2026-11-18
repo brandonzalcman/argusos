@@ -40,3 +40,6 @@ apps/mobile/android/
 # OS / archives
 Thumbs.db
 *.tgz
+
+# Local PGlite data (no-Docker dev database)
+.argus-data/

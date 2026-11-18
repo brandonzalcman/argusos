@@ -295,3 +295,19 @@ export function moveGroup(
   }
   return moved.map((item) => out.get(item.blockId) ?? item);
 }
+
+/**
+ * Runtime-only: removes fully empty row bands so authored gaps (e.g. after a block was deleted at
+ * another breakpoint) do not leave blank space. Relative order and overlaps are preserved.
+ */
+export function collapseEmptyRows(items: readonly LayoutItem[]): readonly LayoutItem[] {
+  const covered = new Set<number>();
+  for (const item of items) {
+    for (let row = item.y; row < item.y + item.height; row += 1) {
+      covered.add(row);
+    }
+  }
+  const sorted = [...covered].toSorted((a, b) => a - b);
+  const newRow = new Map(sorted.map((row, index) => [row, index] as const));
+  return items.map((item) => ({ ...item, y: newRow.get(item.y) ?? item.y }));
+}

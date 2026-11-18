@@ -1,9 +1,9 @@
 import {
   Badge,
   EmptyState,
-  ErrorState as UiErrorState,
   Skeleton,
   SkeletonGroup,
+  ErrorState as UiErrorState,
   type ErrorStateProps as UiErrorStateProps,
 } from "@argus/ui";
 import { CircleAlert, CircleCheck, LoaderCircle, TriangleAlert } from "@argus/ui/icons";

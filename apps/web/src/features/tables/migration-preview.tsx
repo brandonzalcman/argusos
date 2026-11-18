@@ -1,6 +1,16 @@
 import type { MigrationOperation, MigrationPreview } from "@argus/ddl-engine";
-import { type ReactElement, useId, useState } from "react";
-import "./tables.css";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  Field,
+  Input,
+  Panel,
+  StatusPill,
+} from "@argus/ui";
+import { type ReactElement, useState } from "react";
 
 const operationLabels: Readonly<Record<MigrationOperation["kind"], string>> = {
   "create-table": "Create table",
@@ -26,7 +36,7 @@ export interface MigrationPreviewPanelProps {
 }
 
 /**
- * Plain-words DDL plan diff with an apply-with-confirmation step.
+ * Plain-words DDL plan diff with an apply-with-confirmation dialog.
  * Shows operation summaries, ordered step descriptions, preflight conversion results and warnings.
  * It deliberately never renders SQL text: statements are generated, parameterised and executed only by
  * the DDL engine inside one transaction.
@@ -39,8 +49,6 @@ export function MigrationPreviewPanel({
   onDiscard,
 }: MigrationPreviewPanelProps): ReactElement {
   const { plan } = preview;
-  const headingId = useId();
-  const confirmId = useId();
   const [confirming, setConfirming] = useState(false);
   const [typed, setTyped] = useState("");
   const [understood, setUnderstood] = useState(false);
@@ -50,174 +58,210 @@ export function MigrationPreviewPanel({
   const expired = Date.parse(plan.expiresAt) < Date.now();
   const blocked = !preview.canPublish || expired;
   const confirmed = !destructive || (typed === tableName && understood);
+  const count = plan.diff.operations.length;
 
   return (
-    <section className="argus-panel argus-stack" aria-labelledby={headingId}>
-      <h2 id={headingId}>Schema change preview</h2>
-      <p className="argus-muted">
-        Planned by the DDL engine against live version{" "}
-        <span className="tbl-mono">{plan.baseLiveVersion ?? "none"}</span>. SQL is generated and run
-        by the engine in one transaction; it is not shown or editable here.
-      </p>
-
-      {plan.diff.operations.length === 0 ? (
-        <p role="status">No schema changes to apply.</p>
-      ) : (
-        <ol className="tbl-plan" aria-label="Planned changes">
-          {plan.diff.operations.map((op) => {
-            const isDestructive = destructiveIds.includes(op.operationId);
-            const check = plan.preflight.find((p) => p.operationId === op.operationId);
-            return (
-              <li key={op.operationId} data-destructive={isDestructive || undefined}>
-                <strong>{operationLabels[op.kind]}</strong>
-                {isDestructive ? (
-                  <span className="tbl-tag tbl-tag--danger">
-                    {" "}
-                    Destructive (retained, restorable)
-                  </span>
-                ) : null}
-                <div>{op.summary}</div>
-                {check ? (
-                  <div role={check.failedRows > 0 ? "alert" : "status"}>
-                    {check.failedRows > 0
-                      ? `${check.failedRows.toLocaleString()} of ${check.scannedRows.toLocaleString()} rows cannot be converted${check.truncated ? " (sample truncated)" : ""}. Publishing is blocked until they are fixed.`
-                      : `All ${check.scannedRows.toLocaleString()} scanned rows convert cleanly.`}
-                    {check.samples.length > 0 ? (
-                      <ul>
-                        {check.samples.map((s) => (
-                          <li key={s.recordId}>
-                            <span className="tbl-mono">{s.recordId}</span> — {s.reasonCode}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-      )}
-
-      <dl className="tbl-impact">
-        <div>
-          <dt>Estimated rows touched</dt>
-          <dd>{plan.impact.estimatedRows?.toLocaleString() ?? "Unknown"}</dd>
-        </div>
-        <div>
-          <dt>Estimated lock time</dt>
-          <dd>
-            {plan.impact.estimatedLockMilliseconds === null
-              ? "Unknown"
-              : `${plan.impact.estimatedLockMilliseconds} ms`}
-          </dd>
-        </div>
-        <div>
-          <dt>Affects active incidents</dt>
-          <dd>{plan.impact.affectsActiveIncidents ? "Yes" : "No"}</dd>
-        </div>
-        <div>
-          <dt>Needs maintenance window</dt>
-          <dd>{plan.impact.requiresMaintenanceWindow ? "Yes" : "No"}</dd>
-        </div>
-      </dl>
-
-      {preview.warnings.length > 0 ? (
-        <ul role="alert" className="tbl-issues" aria-label="Warnings">
-          {preview.warnings.map((w) => (
-            <li key={`${w.code}:${w.message}`}>{w.message}</li>
-          ))}
-        </ul>
-      ) : null}
-
-      <details>
-        <summary>Execution steps ({plan.steps.length})</summary>
-        <ol>
-          {[...plan.steps]
-            .sort((a, b) => a.ordinal - b.ordinal)
-            .map((step) => (
-              <li key={step.stepId}>
-                <span className="tbl-tag">{step.phase}</span> {step.description}
-                {step.requiresExclusiveLock ? " (exclusive lock)" : ""}
-              </li>
-            ))}
-        </ol>
-      </details>
-
-      {expired ? (
-        <p role="alert">This plan has expired. Preview the changes again before applying.</p>
-      ) : null}
-      {failedConversions > 0 ? (
-        <p role="alert">Fix the rows that fail conversion, then preview again.</p>
-      ) : null}
-
-      {!confirming ? (
-        <div className="argus-cluster">
-          <button
-            type="button"
-            className="tbl-button tbl-button--primary"
-            disabled={blocked || plan.diff.operations.length === 0}
+    <Panel
+      title="Schema change preview"
+      description={`Planned by the DDL engine against live version ${plan.baseLiveVersion ?? "none"}. SQL is generated and run by the engine in one transaction; it is not shown or editable here.`}
+      status={
+        blocked ? (
+          <StatusPill status="critical" label="Cannot publish" size="sm" />
+        ) : (
+          <StatusPill status="ok" label="Ready to apply" size="sm" />
+        )
+      }
+      actions={
+        <>
+          <Button variant="secondary" size="sm" onClick={onDiscard}>
+            Discard preview
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={blocked || count === 0}
             onClick={() => setConfirming(true)}
           >
             Review and apply…
-          </button>
-          <button type="button" className="tbl-button" onClick={onDiscard}>
-            Discard preview
-          </button>
-        </div>
-      ) : (
-        <fieldset aria-labelledby={confirmId} className="argus-panel argus-stack">
-          <legend id={confirmId}>Confirm schema change</legend>
-          <p>
-            Apply {plan.diff.operations.length} change
-            {plan.diff.operations.length === 1 ? "" : "s"} to <strong>{tableName}</strong>. This
-            publishes a new version you can roll back to, and is recorded in the audit log.
+          </Button>
+        </>
+      }
+    >
+      <div className="grid gap-4">
+        {count === 0 ? (
+          <p role="status" className="text-fg-muted">
+            No schema changes to apply.
           </p>
-          {destructive ? (
+        ) : (
+          <ol aria-label="Planned changes" className="m-0 grid list-none gap-2 p-0">
+            {plan.diff.operations.map((op) => {
+              const isDestructive = destructiveIds.includes(op.operationId);
+              const check = plan.preflight.find((p) => p.operationId === op.operationId);
+              return (
+                <li
+                  key={op.operationId}
+                  className="grid gap-1 rounded-md border border-border bg-surface-sunken p-3 text-sm"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <strong>{operationLabels[op.kind]}</strong>
+                    {isDestructive ? (
+                      <Badge tone="critical">Destructive · retained, restorable</Badge>
+                    ) : null}
+                  </div>
+                  <div>{op.summary}</div>
+                  {check ? (
+                    <div role={check.failedRows > 0 ? "alert" : "status"} className="grid gap-1">
+                      {check.failedRows > 0 ? (
+                        <StatusPill
+                          status="critical"
+                          size="sm"
+                          label={`${check.failedRows.toLocaleString()} of ${check.scannedRows.toLocaleString()} rows cannot convert${check.truncated ? " (sample truncated)" : ""}`}
+                        />
+                      ) : (
+                        <StatusPill
+                          status="ok"
+                          size="sm"
+                          label={`All ${check.scannedRows.toLocaleString()} scanned rows convert`}
+                        />
+                      )}
+                      {check.samples.length > 0 ? (
+                        <ul className="m-0 list-disc ps-5">
+                          {check.samples.map((s) => (
+                            <li key={s.recordId}>
+                              <span className="font-mono">{s.recordId}</span> — {s.reasonCode}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-3">
+          {(
+            [
+              ["Estimated rows touched", plan.impact.estimatedRows?.toLocaleString() ?? "Unknown"],
+              [
+                "Estimated lock time",
+                plan.impact.estimatedLockMilliseconds === null
+                  ? "Unknown"
+                  : `${plan.impact.estimatedLockMilliseconds} ms`,
+              ],
+              ["Affects active incidents", plan.impact.affectsActiveIncidents ? "Yes" : "No"],
+              ["Needs maintenance window", plan.impact.requiresMaintenanceWindow ? "Yes" : "No"],
+            ] as const
+          ).map(([term, value]) => (
+            <div key={term}>
+              <dt className="text-xs font-semibold tracking-wide text-fg-muted uppercase">
+                {term}
+              </dt>
+              <dd className="m-0 font-mono text-sm">{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {preview.warnings.length > 0 ? (
+          <ul
+            role="alert"
+            aria-label="Warnings"
+            className="m-0 list-disc rounded-md border border-warning-solid bg-warning-subtle p-3 ps-8 text-sm"
+          >
+            {preview.warnings.map((w) => (
+              <li key={`${w.code}:${w.message}`}>{w.message}</li>
+            ))}
+          </ul>
+        ) : null}
+
+        <details className="text-sm">
+          <summary className="cursor-pointer font-medium">
+            Execution steps ({plan.steps.length})
+          </summary>
+          <ol className="mt-2 grid gap-1 ps-5">
+            {[...plan.steps]
+              .sort((a, b) => a.ordinal - b.ordinal)
+              .map((step) => (
+                <li key={step.stepId}>
+                  <Badge variant="outline">{step.phase}</Badge> {step.description}
+                  {step.requiresExclusiveLock ? " (exclusive lock)" : ""}
+                </li>
+              ))}
+          </ol>
+        </details>
+
+        {expired ? (
+          <p role="alert" className="text-critical">
+            This plan has expired. Preview the changes again before applying.
+          </p>
+        ) : null}
+        {failedConversions > 0 ? (
+          <p role="alert" className="text-critical">
+            Fix the rows that fail conversion, then preview again.
+          </p>
+        ) : null}
+      </div>
+
+      <Dialog
+        open={confirming}
+        onOpenChange={(open) => {
+          if (!applying) {
+            setConfirming(open);
+          }
+        }}
+      >
+        <DialogContent
+          title="Confirm schema change"
+          description={`Apply ${count} change${count === 1 ? "" : "s"} to “${tableName}”. This publishes a new version you can roll back to and is recorded in the audit log.`}
+          size="md"
+          preventOutsideClose
+          footer={
             <>
-              <p>
-                Removed fields are hidden and retained, not erased, so undo stays instant during the
-                retention period.
-              </p>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={understood}
-                  onChange={(e) => setUnderstood(e.target.checked)}
-                />{" "}
-                I understand which changes are destructive and how long data is retained.
-              </label>
-              <label>
-                Type the table name <strong>{tableName}</strong> to confirm
-                <input
-                  className="tbl-input"
-                  value={typed}
-                  autoComplete="off"
-                  onChange={(e) => setTyped(e.target.value)}
-                />
-              </label>
+              <Button variant="secondary" disabled={applying} onClick={() => setConfirming(false)}>
+                Back
+              </Button>
+              <Button
+                variant={destructive ? "danger" : "primary"}
+                loading={applying}
+                disabled={!confirmed || blocked}
+                onClick={() => onApply(destructiveIds)}
+              >
+                Apply schema change
+              </Button>
             </>
-          ) : null}
-          <div className="argus-cluster">
-            <button
-              type="button"
-              className="tbl-button tbl-button--primary"
-              disabled={!confirmed || applying || blocked}
-              onClick={() => onApply(destructiveIds)}
-            >
-              {applying ? "Applying…" : "Apply schema change"}
-            </button>
-            <button
-              type="button"
-              className="tbl-button"
-              disabled={applying}
-              onClick={() => setConfirming(false)}
-            >
-              Back
-            </button>
+          }
+        >
+          <div className="grid gap-4">
+            {destructive ? (
+              <>
+                <p className="text-sm">
+                  Removed fields are hidden and retained, not erased, so undo stays instant during
+                  the retention period.
+                </p>
+                <Checkbox
+                  checked={understood}
+                  onCheckedChange={(c) => setUnderstood(c === true)}
+                  label="I understand which changes are destructive and how long data is retained."
+                />
+                <Field label={`Type “${tableName}” to confirm`}>
+                  <Input
+                    value={typed}
+                    autoComplete="off"
+                    onChange={(e) => setTyped(e.target.value)}
+                  />
+                </Field>
+              </>
+            ) : (
+              <p className="text-sm">
+                No destructive changes. The plan is bound to the digest you reviewed; if the table
+                changes first, the engine refuses to apply it.
+              </p>
+            )}
           </div>
-        </fieldset>
-      )}
-    </section>
+        </DialogContent>
+      </Dialog>
+    </Panel>
   );
 }

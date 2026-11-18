@@ -6,7 +6,12 @@
     "baseUrl": ".",
     "paths": {
       "@argus/sdk": ["./src/index.ts"],
-      "@argus/sdk/server": ["./src/server/plugin.ts"]
+      "@argus/sdk/server": ["./src/server/plugin.ts"],
+      "@argus/sdk/host": ["./src/host/index.ts"],
+      "@argus/sdk/sandbox-runtime": ["./src/sandbox-runtime.ts"],
+      "@argus/sdk/compiler": ["./src/sandbox/compile.ts"],
+      "@argus/sdk/templates": ["./src/templates/index.ts"],
+      "@argus/sdk/client": ["./src/client/create-client.ts"]
     },
     "noEmit": true
   },

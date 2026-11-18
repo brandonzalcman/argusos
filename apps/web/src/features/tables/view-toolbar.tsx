@@ -8,6 +8,7 @@ import type {
 import {
   Button,
   Card,
+  cn,
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -125,7 +126,7 @@ function ConditionValue({
   return (
     <input
       aria-label={label}
-      className={`${nativeControl} w-40`}
+      className={cn(nativeControl, "w-44")}
       type={type}
       step={type === "number" ? "any" : undefined}
       placeholder={multi ? "comma-separated" : undefined}
@@ -184,22 +185,23 @@ function GroupEditor({
   };
 
   return (
-    <div
-      role="group"
-      aria-label={depth === 0 ? "Filters" : `Filter group ${path}`}
+    <fieldset
       className={
         depth === 0
-          ? "grid gap-2"
-          : "grid gap-2 rounded-md border border-border bg-surface-sunken p-3"
+          ? "m-0 grid min-w-0 gap-2 border-0 p-0"
+          : "m-0 grid min-w-0 gap-2 rounded-md border border-border bg-surface-sunken p-3"
       }
     >
+      <legend className="sr-only">{depth === 0 ? "Filters" : `Filter group ${path}`}</legend>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span>Match</span>
         <NativeSelect
           aria-label={`${depth === 0 ? "Filters" : `Group ${path}`} match mode`}
           className="w-auto"
           value={group.conjunction}
-          onChange={(e) => onChange({ ...group, conjunction: e.target.value === "or" ? "or" : "and" })}
+          onChange={(e) =>
+            onChange({ ...group, conjunction: e.target.value === "or" ? "or" : "and" })
+          }
         >
           <option value="and">all</option>
           <option value="or">any</option>
@@ -220,13 +222,9 @@ function GroupEditor({
             ...group,
             conditions: group.conditions.map((c, i) => (i === index ? { ...c, ...patch } : c)),
           });
-        const label = `Filter ${path}.${index + 1}`;
+        const label = `Filter ${path ? `${path}.` : ""}${index + 1}`;
         return (
-          <div
-            // biome-ignore lint/suspicious/noArrayIndexKey: conditions have no stable identity.
-            key={index}
-            className="flex flex-wrap items-center gap-2"
-          >
+          <div key={index} className="flex flex-wrap items-center gap-2">
             <NativeSelect
               aria-label={`${label} field`}
               className="w-44"
@@ -285,16 +283,17 @@ function GroupEditor({
 
       {group.groups.map((child, index) => (
         <GroupEditor
-          // biome-ignore lint/suspicious/noArrayIndexKey: child groups have no stable identity.
           key={index}
           group={child}
           depth={depth + 1}
-          path={`${path}.${index + 1}`}
+          path={`${path ? `${path}.` : ""}${index + 1}`}
           fields={fields}
           onChange={(next) =>
             onChange({ ...group, groups: group.groups.map((g, i) => (i === index ? next : g)) })
           }
-          onRemove={() => onChange({ ...group, groups: group.groups.filter((_, i) => i !== index) })}
+          onRemove={() =>
+            onChange({ ...group, groups: group.groups.filter((_, i) => i !== index) })
+          }
         />
       ))}
 
@@ -320,7 +319,7 @@ function GroupEditor({
           </Button>
         ) : null}
       </div>
-    </div>
+    </fieldset>
   );
 }
 
@@ -411,9 +410,6 @@ export function ViewToolbar({
             <span className="text-critical">Could not save view: {saveStatus.message}</span>
           ) : null}
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-1">
           <label htmlFor={ids.group} className="text-xs font-semibold text-fg-muted uppercase">
             Group by
@@ -498,7 +494,7 @@ export function ViewToolbar({
           <GroupEditor
             group={state.filters ?? emptyGroup()}
             depth={0}
-            path="1"
+            path=""
             fields={fields}
             onChange={(next) => onChange({ ...state, filters: normalizeRoot(next) })}
           />
@@ -510,7 +506,5 @@ export function ViewToolbar({
 
 /** Keeps an empty root group editable (so "Add filter" works) while storing "no filter" as null once cleared. */
 function normalizeRoot(group: FilterGroup): FilterGroup | null {
-  return group.conditions.length === 0 && group.groups.length === 0
-    ? null
-    : group;
+  return group.conditions.length === 0 && group.groups.length === 0 ? null : group;
 }

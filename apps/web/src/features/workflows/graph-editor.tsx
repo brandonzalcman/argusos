@@ -1,6 +1,6 @@
 import type { WorkflowEdge, WorkflowStep, WorkflowTrigger } from "@argus/schema";
 import { Badge, cn, focusRing, Panel } from "@argus/ui";
-import { CircleCheck, ChevronRight, TriangleAlert, Zap } from "@argus/ui/icons";
+import { ChevronRight, CircleCheck, TriangleAlert, Zap } from "@argus/ui/icons";
 import { Fragment, type KeyboardEvent, type ReactElement, useRef } from "react";
 import { type GraphIssue, layoutSteps, STEP_TYPE_LABELS, TRIGGER_TYPE_LABELS } from "./graph.js";
 
@@ -133,7 +133,6 @@ export function GraphEditor({
       <p id="graph-help" className="sr-only">
         Use arrow keys to move between nodes, Enter or F2 to edit, Delete to remove a step.
       </p>
-      {/* biome-ignore lint/a11y/useSemanticElements: custom keyboard-navigable node list, not a native select */}
       <div
         role="listbox"
         aria-label="Workflow nodes"

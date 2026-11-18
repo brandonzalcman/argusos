@@ -3,7 +3,8 @@
 #   1. mutable ":latest" image tags in Compose, Helm values/templates, Dockerfiles;
 #   2. literal passwords/secrets in deploy/helm (credentials must be supplied by
 #      pre-created Kubernetes Secrets) and literal passwords in Compose (must use
-#      ${VAR:?} interpolation backed by deploy/compose/.env.example).
+#      ${VAR:?} interpolation backed by deploy/compose/.env.example);
+#   3. GitHub Actions not pinned to a 40-character commit SHA.
 # Static text checks only; they do not replace a secret scanner.
 set -u
 cd "$(git rev-parse --show-toplevel)"
@@ -44,6 +45,11 @@ if grep -nP '^\s*\w*(?i:PASSWORD|SECRET|SECRET_KEY|ACCESS_KEY)\w*:\s*(?!\$\{)[^\
 fi
 if grep -nP '://[^/\s:@$]+:(?!\$\{)[^/\s@]+@' "$compose"; then
   fail "$compose embeds a literal password in a URL; use \${VAR:?} interpolation"
+fi
+
+# --- 3. Actions pinned by commit SHA ---------------------------------------
+if grep -rnP '^\s*-?\s*uses:\s+(?!\./)(?![^\s@]+@[0-9a-f]{40}(\s|$))' .github/workflows .github/actions; then
+  fail "GitHub Actions must be pinned to a full commit SHA (with a version comment)"
 fi
 
 [ "$status" -eq 0 ] && echo "Deployment guards passed."

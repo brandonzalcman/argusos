@@ -28,7 +28,7 @@ Deployment sources belong in `deploy/`; the local Compose scaffold is `deploy/co
 1. Build one local Postgres-backed API vertical slice and verify migrations/RLS/audit.
 2. Add reproducible application images and local Compose wiring.
 3. Add sync/NATS/object storage only with integration and failure tests.
-4. Add Helm values, resource limits, network policies and upgrade tests.
+4. Add Helm values, resource limits, network policies and upgrade tests. (Scaffolded in `deploy/helm/argus`: default resources, per-workload Secrets, default-deny NetworkPolicy, digest-required production values; none of it has been rendered or run.)
 5. Add observability, backup restoration and air-gapped installation verification.
 6. Complete a security review and incident operational runbooks before production claims.
 

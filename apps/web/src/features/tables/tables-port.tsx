@@ -139,13 +139,13 @@ export interface TablesDataPort {
    * Batch of optimistic updates (paste, bulk edit, undo). Results align with inputs by index; each input is
    * checked against its own baseVersion, so one stale row never overwrites or blocks the others.
    */
-  readonly updateRecords: (
+  readonly updateRecords?: (
     inputs: readonly UpdateRecordInput[],
   ) => Promise<readonly UpdateRecordResult[]>;
   /** Authorized option search for user, position and link-to-record editors. */
-  readonly searchLookupOptions: (request: LookupSearchRequest) => Promise<readonly LookupOption[]>;
+  readonly searchLookupOptions?: (request: LookupSearchRequest) => Promise<readonly LookupOption[]>;
   /** Uploads to object storage via the API and returns the stored attachment descriptor. */
-  readonly uploadAttachment: (request: UploadAttachmentRequest) => Promise<AttachmentValue>;
+  readonly uploadAttachment?: (request: UploadAttachmentRequest) => Promise<AttachmentValue>;
   readonly saveView: (request: SaveViewRequest) => Promise<ViewDefinition>;
   readonly previewMigration: (request: MigrationDraftRequest) => Promise<MigrationPreview>;
   readonly applyMigration: (request: ApplyMigrationRequest) => Promise<MigrationExecutionResult>;
@@ -190,6 +190,42 @@ export function createDisconnectedTablesDataPort(): TablesDataPort {
     previewMigration: () => Promise.reject(notConnected("previewMigration")),
     applyMigration: () => Promise.reject(notConnected("applyMigration")),
   };
+}
+
+/**
+ * Optional capabilities degrade gracefully so older adapters (and demo data sources) keep working:
+ * batches fall back to one updateRecord per row; lookups and uploads report that they are unavailable.
+ */
+export async function updateRecordsCompat(
+  port: TablesDataPort,
+  inputs: readonly UpdateRecordInput[],
+): Promise<readonly UpdateRecordResult[]> {
+  if (port.updateRecords) {
+    return port.updateRecords(inputs);
+  }
+  const results: UpdateRecordResult[] = [];
+  for (const input of inputs) {
+    results.push(await port.updateRecord(input));
+  }
+  return results;
+}
+
+export function searchLookupCompat(
+  port: TablesDataPort,
+  request: LookupSearchRequest,
+): Promise<readonly LookupOption[]> {
+  return port.searchLookupOptions
+    ? port.searchLookupOptions(request)
+    : Promise.reject(new Error("Lookup search is not available from this data source."));
+}
+
+export function uploadAttachmentCompat(
+  port: TablesDataPort,
+  request: UploadAttachmentRequest,
+): Promise<AttachmentValue> {
+  return port.uploadAttachment
+    ? port.uploadAttachment(request)
+    : Promise.reject(new Error("Attachment upload is not available from this data source."));
 }
 
 const fallbackPort = createDisconnectedTablesDataPort();

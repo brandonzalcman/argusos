@@ -1,1 +1,6 @@
-export { ComponentEditorPage } from "./placeholder-editor.js";
+export {
+  ComponentEditor,
+  ComponentEditorPage,
+  type LoadedComponent,
+  loadComponent,
+} from "./component-editor.js";

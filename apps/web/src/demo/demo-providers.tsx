@@ -6,12 +6,14 @@ import { FeatureSourcesProvider } from "../features/live-data/feature-sources.js
 import { TablesDataProvider } from "../features/tables/tables-port.js";
 import { FeatureSessionProvider } from "../features/workflows/feature-scope.js";
 import { WorkflowServiceProvider } from "../features/workflows/workflow-service.js";
+import { StudioServicesProvider } from "../services/studio.js";
 import { createDemoAdminService } from "./admin.js";
 import { demoAlertsSource } from "./alerts.js";
 import { createDemoBoardsEnvironment } from "./boards/index.js";
 import { demoIncidentsSource } from "./incidents.js";
 import { demoMapsSource } from "./maps.js";
 import { DEMO_ACTOR, DEMO_SCOPE } from "./scenario.js";
+import { createDemoSessionPort, createDemoStudioPort } from "./studio/index.js";
 import { createDemoTablesDataPort } from "./tables/index.js";
 import { createDemoWorkflowService } from "./workflows.js";
 
@@ -25,6 +27,8 @@ const tablesPort = createDemoTablesDataPort();
 const boardsEnvironment = createDemoBoardsEnvironment();
 const adminService = createDemoAdminService();
 const workflowService = createDemoWorkflowService();
+const demoSession = createDemoSessionPort();
+const demoStudio = createDemoStudioPort(demoSession);
 
 /** Permanent, non-dismissable notice so demo data is never mistaken for operational data. */
 function DemoBanner(): ReactElement {
@@ -62,8 +66,10 @@ export function DemoProviders({ children }: { readonly children: ReactNode }): R
             <BoardsEnvironmentProvider environment={boardsEnvironment}>
               <AdminServiceProvider value={adminService}>
                 <WorkflowServiceProvider value={workflowService}>
-                  <DemoBanner />
-                  {children}
+                  <StudioServicesProvider studio={demoStudio} session={demoSession}>
+                    <DemoBanner />
+                    {children}
+                  </StudioServicesProvider>
                 </WorkflowServiceProvider>
               </AdminServiceProvider>
             </BoardsEnvironmentProvider>

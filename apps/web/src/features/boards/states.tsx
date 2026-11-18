@@ -1,9 +1,9 @@
 import {
+  Skeleton,
+  SkeletonGroup,
   Badge as UiBadge,
   EmptyState as UiEmptyState,
   ErrorState as UiErrorState,
-  Skeleton,
-  SkeletonGroup,
 } from "@argus/ui";
 import type { ReactElement, ReactNode } from "react";
 import { isNotImplementedError } from "./queries.js";

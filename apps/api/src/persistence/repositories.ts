@@ -4,7 +4,7 @@ export interface RepositoryScope {
   readonly tenantId: string;
   readonly incidentId: string | null;
   readonly userId: string;
-  readonly positionId: string | null;
+  readonly positionId: string;
   readonly requestId: string;
 }
 
@@ -32,13 +32,53 @@ export type CreateCatalogEntity<T extends CatalogEntity> = Omit<
   T,
   "id" | "tenantId" | "version" | "createdAt" | "updatedAt"
 >;
-export type UpdateCatalogEntity<T extends CatalogEntity> = Partial<CreateCatalogEntity<T>>;
+
+/*
+ * Per-entity patch types. They list only the columns a caller may change. Identity (id), ownership
+ * (tenantId), optimistic version, timestamps, soft-delete/tombstone and incident/position scoping
+ * columns are deliberately absent: the repository owns them. There is no generic "partial entity"
+ * update type because it would allow patching those protected columns.
+ */
+export interface TenantPatch {
+  readonly name?: string;
+  readonly status?: "active" | "suspended" | "archived";
+}
+export interface UserPatch {
+  readonly displayName?: string;
+  readonly email?: string | null;
+  readonly status?: "invited" | "active" | "disabled";
+}
+export interface PositionPatch {
+  readonly name?: string;
+  readonly description?: string | null;
+  readonly homepageBoardId?: string | null;
+  readonly studioView?: boolean;
+  readonly studioEdit?: boolean;
+  readonly studioPublish?: boolean;
+  readonly studioEditCode?: boolean;
+}
+export interface IncidentPatch {
+  readonly name?: string;
+  readonly status?: "planned" | "active" | "monitoring" | "closed" | "archived";
+  readonly level?: number | null;
+  readonly operationalPeriod?: string | null;
+}
+export interface DefinitionPatch {
+  readonly name?: string;
+  readonly description?: string | null;
+}
+/** Record values only; table, incident scope, deletion state and audit columns are never patchable. */
+export interface RecordPatch {
+  readonly values: Readonly<Record<string, unknown>>;
+}
+/** Review decisions go through dedicated workflow methods, never a generic patch. */
+export type NoPatch = Readonly<Record<string, never>>;
 
 /** Database port whose implementation must set authenticated RLS claims for every transaction. */
 export interface ScopedRepository<
   T extends CatalogEntity,
+  TUpdate,
   TCreate = CreateCatalogEntity<T>,
-  TUpdate = UpdateCatalogEntity<T>,
 > {
   /**
    * Find one authorized entity by immutable ID.
@@ -78,15 +118,15 @@ export interface ScopedRepository<
 }
 
 export interface SystemRepositories {
-  readonly tenants: ScopedRepository<CatalogEntity>;
-  readonly users: ScopedRepository<CatalogEntity>;
-  readonly positions: ScopedRepository<CatalogEntity>;
-  readonly incidents: ScopedRepository<CatalogEntity>;
-  readonly definitions: ScopedRepository<CatalogEntity>;
-  readonly views: ScopedRepository<CatalogEntity>;
-  readonly records: ScopedRepository<RecordEntity>;
-  readonly publicFormReviews: ScopedRepository<CatalogEntity>;
-  readonly apiKeys: ScopedRepository<CatalogEntity>;
+  readonly tenants: ScopedRepository<CatalogEntity, TenantPatch>;
+  readonly users: ScopedRepository<CatalogEntity, UserPatch>;
+  readonly positions: ScopedRepository<CatalogEntity, PositionPatch>;
+  readonly incidents: ScopedRepository<CatalogEntity, IncidentPatch>;
+  readonly definitions: ScopedRepository<CatalogEntity, DefinitionPatch>;
+  readonly views: ScopedRepository<CatalogEntity, DefinitionPatch>;
+  readonly records: ScopedRepository<RecordEntity, RecordPatch>;
+  readonly publicFormReviews: ScopedRepository<CatalogEntity, NoPatch>;
+  readonly apiKeys: ScopedRepository<CatalogEntity, NoPatch>;
 }
 
 /**

@@ -1,7 +1,19 @@
 import type { MigrationExecutionResult, MigrationPreview } from "@argus/ddl-engine";
-import type { FieldDefinition, TableDefinition } from "@argus/schema";
+import type { FieldDefinition, FieldTypeId, TableDefinition } from "@argus/schema";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  PageContainer,
+  PageHeader,
+  Panel,
+  StatusPill,
+} from "@argus/ui";
+import { ArrowLeft, ArrowUp, Plus, RotateCcw, Trash2 } from "@argus/ui/icons";
 import { Link, useParams } from "@tanstack/react-router";
-import { type ReactElement, useId, useMemo, useState } from "react";
+import { type ReactElement, useMemo, useState } from "react";
+import { NativeSelect } from "./controls.js";
 import {
   createDraftField,
   describeDraftChanges,
@@ -11,10 +23,9 @@ import {
 import { fieldTypeLabel, listFieldTypes } from "./field-catalog.js";
 import { FieldEditor } from "./field-editor.js";
 import { MigrationPreviewPanel } from "./migration-preview.js";
-import { EmptyState, ErrorState, LoadingSkeleton, SyncBadge } from "./states.js";
+import { LoadError, LoadingSkeleton, SyncBadge } from "./states.js";
 import { useTablesData } from "./tables-port.js";
 import { useTableCatalog, useTableDefinition } from "./use-live.js";
-import "./tables.css";
 
 const TYPE_OPTIONS = listFieldTypes().map((p) => ({
   id: p.id,
@@ -43,8 +54,8 @@ function fingerprint(fields: readonly FieldDefinition[]): string {
  * Designer for one table. Edits are local drafts; the DDL engine plans them and only an explicit,
  * digest-bound confirmation applies them.
  * Input: a published TableDefinition (live subscription) and the authorized catalog for relations.
- * Output: field list, add/edit form, plan preview and apply step.
- * Errors: stale live version (someone published meanwhile) blocks apply and asks to reload.
+ * Output: field list, add/edit form, plan preview and apply dialog.
+ * Errors: stale live version (someone published meanwhile) blocks apply and asks to preview again.
  * Depends on: TablesDataPort.previewMigration/applyMigration over @argus/ddl-engine.
  */
 function Designer({
@@ -55,13 +66,12 @@ function Designer({
   readonly catalog: readonly TableDefinition[];
 }): ReactElement {
   const port = useTablesData();
-  const headingId = useId();
   const [draft, setDraft] = useState<readonly FieldDefinition[]>(table.fields);
   const [baseVersion, setBaseVersion] = useState(table.version);
   const [selection, setSelection] = useState<Selection>(null);
   const [preview, setPreview] = useState<PreviewState>({ state: "none" });
   const [apply, setApply] = useState<ApplyState>({ state: "idle" });
-  const [newType, setNewType] = useState("text");
+  const [newType, setNewType] = useState<FieldTypeId>("text");
 
   const stale = table.version !== baseVersion;
   const liveIds = useMemo(() => new Set(table.fields.map((f) => f.id)), [table.fields]);
@@ -79,6 +89,7 @@ function Designer({
   const selected = draft.find((f) => f.id === selection?.fieldId) ?? null;
   const currentFingerprint = useMemo(() => fingerprint(draft), [draft]);
   const previewIsCurrent = preview.state === "ready" && preview.fingerprint === currentFingerprint;
+  const removed = table.fields.filter((f) => !draft.some((d) => d.id === f.id));
 
   const edit = (next: readonly FieldDefinition[]): void => {
     setDraft(next);
@@ -89,7 +100,7 @@ function Designer({
   const addField = (): void => {
     const keys = new Set(draft.map((f) => f.key));
     const field = createDraftField(
-      newType as FieldDefinition["type"],
+      newType,
       `New ${fieldTypeLabel(newType).toLocaleLowerCase()} field`,
       keys,
     );
@@ -142,87 +153,117 @@ function Designer({
   };
 
   return (
-    <article className="argus-stack" aria-labelledby={headingId}>
-      <header className="tbl-header">
-        <div>
-          <h1 id={headingId}>Design: {table.name}</h1>
-          <p className="argus-muted">
-            Published version <span className="tbl-mono">{table.version}</span> ·{" "}
-            {table.incidentScope === "incident" ? "Incident-scoped" : "Global"}
-          </p>
-        </div>
-        <div className="argus-cluster">
-          <Link to="/tables/$tableId" params={{ tableId: table.id }}>
-            Back to data
-          </Link>
-        </div>
-      </header>
+    <PageContainer width="wide">
+      <PageHeader
+        eyebrow="Table designer"
+        title={`Design: ${table.name}`}
+        description="Edit fields locally, preview the migration plan, then apply with confirmation."
+        breadcrumbs={[
+          { label: "Tables", link: <Link to="/tables">Tables</Link> },
+          {
+            label: table.name,
+            link: (
+              <Link to="/tables/$tableId" params={{ tableId: table.id }}>
+                {table.name}
+              </Link>
+            ),
+          },
+          { label: "Design" },
+        ]}
+        meta={
+          <>
+            <StatusPill status="ok" label={`Published v${table.version}`} size="sm" />
+            <Badge tone={table.incidentScope === "incident" ? "accent" : "neutral"}>
+              {table.incidentScope === "incident" ? "Incident-scoped" : "Global"}
+            </Badge>
+          </>
+        }
+        actions={
+          <Button asChild variant="secondary" leadingIcon={<ArrowLeft />}>
+            <Link to="/tables/$tableId" params={{ tableId: table.id }}>
+              Back to data
+            </Link>
+          </Button>
+        }
+      />
 
       {stale ? (
-        <p role="alert" className="tbl-error-text">
+        <p
+          role="alert"
+          className="rounded-md border border-warning-solid bg-warning-subtle p-3 text-sm"
+        >
           This table was published by someone else while you were editing (now v{table.version}).
           Preview again so the plan is built against the current version.
         </p>
       ) : null}
 
-      <div className="tbl-designer">
-        <section className="argus-panel argus-stack" aria-label="Fields">
-          <div className="tbl-header">
-            <h2>Fields ({draft.length})</h2>
-            <div className="argus-cluster">
-              <label>
-                <span className="tbl-sr-only">New field type</span>
-                <select
-                  className="tbl-input"
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value)}
-                >
-                  {TYPE_OPTIONS.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button type="button" className="tbl-button tbl-button--primary" onClick={addField}>
+      <div className="grid items-start gap-(--argus-gap) lg:grid-cols-[minmax(20rem,1fr)_minmax(22rem,1.2fr)]">
+        <Panel
+          title={`Fields (${draft.length})`}
+          actions={
+            <>
+              <NativeSelect
+                aria-label="New field type"
+                className="w-40"
+                value={newType}
+                onChange={(e) => setNewType(e.target.value as FieldTypeId)}
+              >
+                {TYPE_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </NativeSelect>
+              <Button variant="primary" size="sm" leadingIcon={<Plus />} onClick={addField}>
                 Add field
-              </button>
-            </div>
-          </div>
+              </Button>
+            </>
+          }
+        >
           {draft.length === 0 ? (
-            <p className="argus-muted">No fields yet. Add the first one.</p>
+            <EmptyState
+              title="No fields yet"
+              description="Add the first field to give this table its shape."
+            />
           ) : (
-            <ul className="tbl-field-list">
+            <ul className="m-0 grid list-none gap-2 p-0">
               {draft.map((f, index) => {
                 const isNew = !liveIds.has(f.id);
                 const fieldIssues = issuesFor(f.id);
+                const isSelected = selection?.fieldId === f.id;
                 return (
-                  <li key={f.id} data-selected={selection?.fieldId === f.id || undefined}>
+                  <li
+                    key={f.id}
+                    className={`flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 ${
+                      isSelected ? "border-focus bg-accent-subtle" : "border-border bg-surface"
+                    }`}
+                  >
                     <button
                       type="button"
-                      className="tbl-field-button"
-                      aria-pressed={selection?.fieldId === f.id}
+                      aria-pressed={isSelected}
+                      className="min-w-40 flex-1 rounded-sm text-start focus-visible:outline-2 focus-visible:outline-focus"
                       onClick={() => setSelection({ fieldId: f.id, isNew })}
                     >
-                      <strong>{f.name || "(unnamed)"}</strong>{" "}
-                      <span className="argus-muted">{fieldTypeLabel(f.type)}</span>
-                      {isNew ? <span className="tbl-tag"> New</span> : null}
-                      {f.required ? <span className="tbl-tag"> Required</span> : null}
-                      {f.unique ? <span className="tbl-tag"> Unique</span> : null}
-                      {f.access.defaultMode === "hidden" ? (
-                        <span className="tbl-tag"> Hidden</span>
-                      ) : null}
-                      {fieldIssues.length > 0 ? (
-                        <span className="tbl-tag tbl-tag--danger">
-                          {" "}
-                          {fieldIssues.length} issue{fieldIssues.length === 1 ? "" : "s"}
-                        </span>
-                      ) : null}
+                      <span className="font-semibold">{f.name || "(unnamed)"}</span>{" "}
+                      <span className="text-sm text-fg-muted">{fieldTypeLabel(f.type)}</span>
+                      <span className="ms-2 inline-flex flex-wrap gap-1 align-middle">
+                        {isNew ? <Badge tone="info">New</Badge> : null}
+                        {f.required ? <Badge>Required</Badge> : null}
+                        {f.unique ? <Badge>Unique</Badge> : null}
+                        {f.access.defaultMode === "hidden" ? <Badge>Hidden</Badge> : null}
+                        {fieldIssues.length > 0 ? (
+                          <Badge tone="critical">
+                            {fieldIssues.length} issue{fieldIssues.length === 1 ? "" : "s"}
+                          </Badge>
+                        ) : null}
+                      </span>
                     </button>
-                    <span className="argus-cluster">
-                      <button
-                        type="button"
-                        className="tbl-button"
+                    <span className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        leadingIcon={<ArrowUp />}
+                        aria-label={`Move ${f.name || "field"} up`}
                         disabled={index === 0}
                         onClick={() => {
                           const next = [...draft];
@@ -232,110 +273,120 @@ function Designer({
                           }
                           edit(next);
                         }}
-                      >
-                        Move {f.name || "field"} up
-                      </button>
-                      <button
-                        type="button"
-                        className="tbl-button"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        leadingIcon={<Trash2 />}
+                        aria-label={`Remove ${f.name || "field"}`}
                         onClick={() => {
                           edit(draft.filter((d) => d.id !== f.id));
                           if (selection?.fieldId === f.id) {
                             setSelection(null);
                           }
                         }}
-                      >
-                        Remove {f.name || "field"}
-                      </button>
+                      />
                     </span>
                   </li>
                 );
               })}
             </ul>
           )}
-          {table.fields.some((f) => !draft.some((d) => d.id === f.id)) ? (
-            <div className="argus-stack">
-              <h3>Removed in this draft</h3>
-              <ul>
-                {table.fields
-                  .filter((f) => !draft.some((d) => d.id === f.id))
-                  .map((f) => (
-                    <li key={f.id} className="argus-cluster">
-                      <span>{f.name}</span>
-                      <button
-                        type="button"
-                        className="tbl-button"
-                        onClick={() => edit([...draft, f])}
-                      >
-                        Restore {f.name}
-                      </button>
-                    </li>
-                  ))}
+          {removed.length > 0 ? (
+            <div className="mt-4 grid gap-2">
+              <h3 className="text-sm font-semibold">Removed in this draft</h3>
+              <ul className="m-0 grid list-none gap-1 p-0">
+                {removed.map((f) => (
+                  <li key={f.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span>{f.name}</span>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leadingIcon={<RotateCcw />}
+                      onClick={() => edit([...draft, f])}
+                    >
+                      Restore {f.name}
+                    </Button>
+                  </li>
+                ))}
               </ul>
             </div>
           ) : null}
-        </section>
+        </Panel>
 
-        <section className="argus-panel" aria-label="Field settings">
+        <Panel
+          title={
+            selected ? (selection?.isNew ? "New field" : `Edit ${selected.name}`) : "Field settings"
+          }
+        >
           {selected && selection ? (
-            <>
-              <h2>{selection.isNew ? "New field" : `Edit ${selected.name}`}</h2>
-              <FieldEditor
-                field={selected}
-                isNew={selection.isNew}
-                draftFields={draft}
-                tables={catalog}
-                issues={issuesFor(selected.id)}
-                onChange={(next) => edit(draft.map((f) => (f.id === next.id ? next : f)))}
-              />
-            </>
+            <FieldEditor
+              field={selected}
+              isNew={selection.isNew}
+              draftFields={draft}
+              tables={catalog}
+              issues={issuesFor(selected.id)}
+              onChange={(next) => edit(draft.map((f) => (f.id === next.id ? next : f)))}
+            />
           ) : (
-            <p className="argus-muted">Select a field to edit it, or add a new one.</p>
+            <EmptyState
+              title="No field selected"
+              description="Select a field to edit it, or add a new one."
+            />
           )}
-        </section>
+        </Panel>
       </div>
 
-      <section className="argus-panel argus-stack" aria-label="Draft changes">
-        <h2>Draft changes</h2>
-        {changes.length === 0 ? (
-          <p className="argus-muted">No unsaved changes.</p>
-        ) : (
-          <ul>
-            {changes.map((c) => (
-              <li key={`${c.fieldId}:${c.kind}`}>{c.description}</li>
-            ))}
-          </ul>
-        )}
-        {issues.length > 0 ? (
-          <p role="alert">
-            Fix {issues.length} field issue{issues.length === 1 ? "" : "s"} before previewing.
-          </p>
-        ) : null}
-        <div className="argus-cluster">
-          <button
-            type="button"
-            className="tbl-button tbl-button--primary"
-            disabled={changes.length === 0 || issues.length > 0 || preview.state === "planning"}
-            onClick={() => void requestPreview()}
-          >
-            {preview.state === "planning" ? "Planning…" : "Preview schema change"}
-          </button>
-          <button
-            type="button"
-            className="tbl-button"
-            disabled={changes.length === 0}
-            onClick={() => {
-              edit(table.fields);
-              setSelection(null);
-            }}
-          >
-            Discard draft
-          </button>
+      <Panel
+        title="Draft changes"
+        description="Your edits in plain words. The DDL engine's plan below is the source of truth."
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={changes.length === 0}
+              onClick={() => {
+                edit(table.fields);
+                setSelection(null);
+              }}
+            >
+              Discard draft
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={preview.state === "planning"}
+              disabled={changes.length === 0 || issues.length > 0}
+              onClick={() => void requestPreview()}
+            >
+              Preview schema change
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-3">
+          {changes.length === 0 ? (
+            <p className="text-fg-muted">No unsaved changes.</p>
+          ) : (
+            <ul className="m-0 list-disc ps-5 text-sm">
+              {changes.map((c) => (
+                <li key={`${c.fieldId}:${c.kind}`}>{c.description}</li>
+              ))}
+            </ul>
+          )}
+          {issues.length > 0 ? (
+            <p role="alert" className="text-sm text-critical">
+              Fix {issues.length} field issue{issues.length === 1 ? "" : "s"} before previewing.
+            </p>
+          ) : null}
+          {preview.state === "error" ? (
+            <p role="alert" className="text-sm text-critical">
+              Could not plan this change: {preview.message}
+            </p>
+          ) : null}
         </div>
-        {preview.state === "error" ? (
-          <p role="alert">Could not plan this change: {preview.message}</p>
-        ) : null}
-      </section>
+      </Panel>
 
       {preview.state === "ready" ? (
         previewIsCurrent && !stale ? (
@@ -347,22 +398,27 @@ function Designer({
             onDiscard={() => setPreview({ state: "none" })}
           />
         ) : (
-          <p role="alert">The draft changed after this plan was created. Preview again.</p>
+          <p role="alert" className="text-sm">
+            The draft changed after this plan was created. Preview again.
+          </p>
         )
       ) : null}
       {apply.state === "error" ? (
-        <p role="alert" className="tbl-error-text">
+        <p
+          role="alert"
+          className="rounded-md border border-critical bg-critical-subtle p-3 text-sm"
+        >
           Not applied: {apply.message}
         </p>
       ) : null}
       {apply.state === "done" ? (
-        <p role="status">
-          Published version <span className="tbl-mono">{apply.result.publishedVersion}</span> at{" "}
+        <p role="status" className="rounded-md border border-success bg-success-subtle p-3 text-sm">
+          Published version <span className="font-mono">{apply.result.publishedVersion}</span> at{" "}
           {new Date(apply.result.committedAt).toLocaleString(undefined, { timeZoneName: "short" })}.
-          Audit event <span className="tbl-mono">{apply.result.auditEventId}</span>.
+          Audit event <span className="font-mono">{apply.result.auditEventId}</span>.
         </p>
       ) : null}
-    </article>
+    </PageContainer>
   );
 }
 
@@ -372,32 +428,50 @@ export function TableDesignerPageView({ tableId }: { readonly tableId: string })
   const catalog = useTableCatalog();
 
   if (table.status === "loading" || catalog.status === "loading") {
-    return <LoadingSkeleton label="Loading table definition" />;
+    return (
+      <PageContainer width="wide">
+        <LoadingSkeleton label="Loading table definition" />
+      </PageContainer>
+    );
   }
   if (table.status === "error" || catalog.status === "error") {
     const failed = table.status === "error" ? table : catalog;
     return (
-      <ErrorState
-        title="Table definition could not be loaded"
-        error={failed.error}
-        onRetry={() => {
-          table.retry();
-          catalog.retry();
-        }}
-      />
+      <PageContainer width="wide">
+        <LoadError
+          title="Table definition could not be loaded"
+          error={failed.error}
+          onRetry={() => {
+            table.retry();
+            catalog.retry();
+          }}
+        />
+      </PageContainer>
     );
   }
   if (!table.value) {
     return (
-      <EmptyState title="Table not available">
-        <p>This table does not exist or your position may not design it.</p>
-        <Link to="/tables">Back to tables</Link>
-      </EmptyState>
+      <PageContainer width="wide">
+        <Card>
+          <EmptyState
+            size="page"
+            title="Table not available"
+            description="This table does not exist or your position may not design it."
+            action={
+              <Button asChild variant="secondary">
+                <Link to="/tables">Back to tables</Link>
+              </Button>
+            }
+          />
+        </Card>
+      </PageContainer>
     );
   }
   return (
     <>
-      <SyncBadge sync={table.sync} />
+      <div className="sr-only">
+        <SyncBadge sync={table.sync} />
+      </div>
       <Designer table={table.value} catalog={catalog.value ?? []} />
     </>
   );
@@ -406,7 +480,11 @@ export function TableDesignerPageView({ tableId }: { readonly tableId: string })
 export function TableDesignerPageRoute(): ReactElement {
   const { tableId } = useParams({ strict: false });
   if (!tableId) {
-    return <EmptyState title="No table selected" />;
+    return (
+      <PageContainer>
+        <EmptyState size="page" title="No table selected" />
+      </PageContainer>
+    );
   }
   return <TableDesignerPageView key={tableId} tableId={tableId} />;
 }

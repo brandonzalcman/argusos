@@ -2,6 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":pinDigests"],
   "rangeStrategy": "pin",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump base images passed through ARG *_IMAGE in Dockerfiles",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG \\w+_IMAGE=(?<depName>[^:@\\s]+):(?<currentValue>[^@\\s]+)(@(?<currentDigest>sha256:[a-f0-9]+))?"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
   "packageRules": [
     {
       "description": "Keep workspace dependencies on the single pnpm catalog",

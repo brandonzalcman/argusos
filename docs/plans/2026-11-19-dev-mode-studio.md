@@ -1,6 +1,8 @@
 # Dev mode (studio): board, page and component builder + page polish
 
-Status: wave 0 done (contracts). Waves 1–3 pending.
+Status (2026-11-19): UI waves done and verified in demo mode (studio, board Code view, pages, component editor, eject, sandbox, page blocks). Backend thread still running. Remaining: real data for custom-component hooks, pickers (table/field/page), rollback in component versions, final reviewer pass on sandbox + permissions.
+
+Ownership note (2026-11-19, user decision): the feature-page sessions (boards; tables; home/incidents/alerts/maps; workflows/admin) own their `features/*` folders. This plan touches them only via exports and messages.
 
 ## Decisions (confirmed with the user, 2026-11-19)
 
@@ -57,17 +59,17 @@ Status: wave 0 done (contracts). Waves 1–3 pending.
 | id | agent | owns | depends on | skills | status |
 |----|-------|------|-----------|--------|--------|
 | w0-contracts | orchestrator | contracts above | — | parallel-task-split | done |
-| backend | top-level thread | `apps/api/**`, `apps/worker/**`, `deploy/**` db bits, `apps/web/src/services/api/**` | w0 | argus-ddl-migration, argus-realtime, argus-testing | todo |
-| w1-pages-ops | ui-builder | `apps/web/src/features/{home,incidents,alerts,maps,live-data}/**` | w0 | argus-ui | todo |
-| w1-pages-tables | ui-builder | `apps/web/src/features/tables/**` | w0 | argus-ui | todo |
-| w1-pages-admin | ui-builder | `apps/web/src/features/{workflows,admin}/**` | w0 | argus-ui | todo |
-| w1-code-editor | implementer | `packages/code-editor/**` (new) | w0 | argus-ui, argus-testing | todo |
-| w1-sandbox | implementer | `packages/sdk/**` | w0 | argus-testing | todo |
-| w2a-studio-shell | ui-designer (orchestrator) | `apps/web/src/routes/**`, `apps/web/src/features/studio/{shell,index}*`, dev-mode toggle | w1 | argus-ui | todo |
-| w2b-builder | ui-builder | `apps/web/src/features/boards/**`, `apps/web/src/features/builder/**` (shared builder) | w2a, w1-code-editor | argus-ui, argus-board-block | todo |
-| w2c-pages | ui-builder | `apps/web/src/features/pages/**` (runtime `/p/$slug`, page builder via shared builder) | w2b | argus-ui, argus-board-block | todo |
-| w2d-components | ui-builder | `apps/web/src/features/studio/components/**` | w2a, w1-code-editor, w1-sandbox | argus-ui | todo |
-| w3-demo | implementer | `apps/web/src/demo/studio/**` (demo StudioPort/SessionPort) | w2 | argus-testing | todo |
+| backend | thread "Backend: API, session and studio persistence" | `apps/api/**`, `apps/worker/**`, `deploy/**` db bits, `apps/web/src/services/api/**` | w0 | argus-ddl-migration, argus-realtime, argus-testing | done — see [backend plan](2026-11-19-backend-studio-session.md); wire `createApiServices()` from `apps/web/src/services/api` into `StudioServicesProvider` |
+| w1-pages-ops | session "UI: home, incidents, alerts, maps pages" | `apps/web/src/features/{home,incidents,alerts,maps,live-data}/**` | w0 | argus-ui | handed to that session (user decision) |
+| w1-pages-tables | session "UI: tables list, data grid, designer" | `apps/web/src/features/tables/**` | w0 | argus-ui | handed to that session |
+| w1-pages-admin | session "UI: workflows and admin pages" | `apps/web/src/features/{workflows,admin}/**` | w0 | argus-ui | handed to that session |
+| w1-code-editor | implementer | `packages/code-editor/**` (new) | w0 | argus-ui, argus-testing | done (typecheck/build/24 tests) |
+| w1-sandbox | implementer | `packages/sdk/**` | w0 | argus-testing | done (72 tests; Edge-verified CSP, capability denial, watchdog) |
+| w2a-studio-shell | ui-designer (orchestrator) | `apps/web/src/routes/**`, `apps/web/src/features/studio/{shell,index}*`, dev-mode toggle | w1 | argus-ui | done (/studio, dev-mode toggle/banner, session labels, DefinitionCodeView) |
+| w2b-builder | session "UI: boards list, runtime, builder, diff" (owns `features/boards/**`) | board Code view, per-block code, editCode gating, reusable builder exports | w2a, w1-code-editor | argus-ui, argus-board-block | done (Code view, block Code tab, eject hook, page/link/embed/custom-component rendering, canvas polish) |
+| w2c-pages | ui-builder | `apps/web/src/features/pages/**` (runtime `/p/$slug`, page builder via shared builder) | w2b | argus-ui, argus-board-block | done (32 tests, browser-verified) |
+| w2d-components | ui-builder | `apps/web/src/features/studio/components/**` | w2a, w1-code-editor, w1-sandbox | argus-ui | done (25 tests, sandbox preview verified) |
+| w3-demo | implementer | `apps/web/src/demo/studio/**` (demo StudioPort/SessionPort) | w2 | argus-testing | done (15 tests) |
 | final-test | tester | tests across the above | w3 | argus-testing | todo |
 | final-review | reviewer | read-only: sandbox, permissions, audit, UI a11y | final-test | — | todo |
 

@@ -179,3 +179,118 @@ export function checkThemeContrast(colors: Readonly<Record<string, string>>): Co
     };
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Menu tree restructuring (drag-and-drop and its keyboard fallback share these pure functions)
+// ---------------------------------------------------------------------------------------------
+
+function findMenuItem(items: readonly MenuItem[], id: string): MenuItem | null {
+  for (const item of items) {
+    if (item.id === id) return item;
+    const nested = findMenuItem(item.children, id);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+/** True when `id` is `ancestorId` or lives anywhere beneath it. */
+export function isMenuDescendant(
+  items: readonly MenuItem[],
+  ancestorId: string,
+  id: string,
+): boolean {
+  const ancestor = findMenuItem(items, ancestorId);
+  return ancestor ? findMenuItem([ancestor], id) !== null : false;
+}
+
+function insertRelative(
+  items: readonly MenuItem[],
+  moved: MenuItem,
+  targetId: string,
+  where: "before" | "after" | "inside",
+): MenuItem[] {
+  const out: MenuItem[] = [];
+  for (const item of items) {
+    if (item.id === targetId) {
+      if (where === "before") out.push(moved, item);
+      else if (where === "after") out.push(item, moved);
+      else out.push({ ...item, children: [...item.children, moved] });
+    } else {
+      out.push({ ...item, children: insertRelative(item.children, moved, targetId, where) });
+    }
+  }
+  return out;
+}
+
+/**
+ * Moves `dragId` before/after `targetId`, or inside it (children, end). Refuses (returns the same
+ * tree) when dragging onto itself, into its own subtree, or inside a non-section item.
+ */
+export function moveMenuItemRelative(
+  items: readonly MenuItem[],
+  dragId: string,
+  targetId: string,
+  where: "before" | "after" | "inside",
+): MenuItem[] {
+  if (dragId === targetId || isMenuDescendant(items, dragId, targetId)) return [...items];
+  const moved = findMenuItem(items, dragId);
+  const target = findMenuItem(items, targetId);
+  if (!moved || !target) return [...items];
+  if (where === "inside" && target.type !== "section") return [...items];
+  return insertRelative(removeMenuItem(items, dragId), moved, targetId, where);
+}
+
+/** Keyboard fallback: nests an item under the section directly above it, if there is one. */
+export function indentMenuItem(items: readonly MenuItem[], id: string): MenuItem[] {
+  const index = items.findIndex((item) => item.id === id);
+  if (index > 0) {
+    const previous = items[index - 1] as MenuItem;
+    if (previous.type !== "section") return [...items];
+    return moveMenuItemRelative(items, id, previous.id, "inside");
+  }
+  if (index === 0) return [...items];
+  return items.map((item) => ({ ...item, children: indentMenuItem(item.children, id) }));
+}
+
+/** Keyboard fallback: moves an item out of its parent, to just after that parent. */
+export function outdentMenuItem(items: readonly MenuItem[], id: string): MenuItem[] {
+  const parent = items.find((item) => item.children.some((child) => child.id === id));
+  if (parent) return moveMenuItemRelative(items, id, parent.id, "after");
+  return items.map((item) => ({ ...item, children: outdentMenuItem(item.children, id) }));
+}
+
+// ---------------------------------------------------------------------------------------------
+// 12-column homepage grid editing
+// ---------------------------------------------------------------------------------------------
+
+export const GRID_COLUMNS = 12;
+
+/** Keeps a block inside the 12-column grid with a positive size. */
+export function clampLayoutItem(item: LayoutItem): LayoutItem {
+  const width = Math.min(GRID_COLUMNS, Math.max(1, Math.round(item.width)));
+  const height = Math.max(1, Math.round(item.height));
+  const x = Math.min(GRID_COLUMNS - width, Math.max(0, Math.round(item.x)));
+  const y = Math.max(0, Math.round(item.y));
+  return { ...item, x, y, width, height };
+}
+
+/** Moves by whole cells, clamped to the grid. */
+export function moveLayoutItem(item: LayoutItem, dx: number, dy: number): LayoutItem {
+  return clampLayoutItem({ ...item, x: item.x + dx, y: item.y + dy });
+}
+
+/** Resizes by whole cells, clamped to the grid (the left/top edge stays put). */
+export function resizeLayoutItem(item: LayoutItem, dw: number, dh: number): LayoutItem {
+  return clampLayoutItem({ ...item, width: item.width + dw, height: item.height + dh });
+}
+
+/** Converts a pointer drag in pixels to whole grid cells. */
+export function pixelsToCells(
+  dxPx: number,
+  dyPx: number,
+  cellWidthPx: number,
+  rowHeightPx: number,
+): { dx: number; dy: number } {
+  if (cellWidthPx <= 0 || rowHeightPx <= 0) return { dx: 0, dy: 0 };
+  return { dx: Math.round(dxPx / cellWidthPx), dy: Math.round(dyPx / rowHeightPx) };
+}

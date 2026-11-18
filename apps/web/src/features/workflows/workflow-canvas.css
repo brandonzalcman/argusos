@@ -95,9 +95,3 @@
 .argus-flow .argus-flow-minimap-action {
   fill: var(--argus-color-fg-muted);
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .argus-flow .react-flow__viewport {
-    transition: none !important;
-  }
-}

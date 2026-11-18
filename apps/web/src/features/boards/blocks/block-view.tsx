@@ -1,5 +1,5 @@
 ﻿import type { BlockRenderContext, BoardDataPort } from "@argus/blocks";
-import { NewRowsIndicator } from "@argus/ui";
+import { Badge, NewRowsIndicator } from "@argus/ui";
 import {
   type ReactElement,
   type ReactNode,
@@ -12,6 +12,7 @@ import {
 import { validateConfig } from "../config-schema.js";
 import type { BlockConfig, BlockDefinition, BoardDefinition } from "../model.js";
 import { EmptyState, ErrorState, LoadingState } from "../states.js";
+import { BoardEmbedBody, CustomComponentBody, LinkListBody } from "./page-blocks.js";
 import { type BoardRow, useBlockRows } from "./use-block-rows.js";
 
 export interface BlockViewProps {
@@ -63,6 +64,7 @@ function DataBody({
     viewId,
     live: props.live,
   });
+  if (tableId === undefined) return <EmptyState title="No table selected" />;
   if (query.isError) {
     return (
       <ErrorState
@@ -172,20 +174,15 @@ function StatBody({ props }: { readonly props: BlockViewProps }): ReactElement {
   return (
     <DataBody props={props} tableId={str(config, "tableId")} emptyTitle="No records in scope">
       {(rows) => (
-        <>
-          <p>
-            <span className="boards-visually-hidden">{label}: </span>
-            <span style={{ fontSize: "2rem", fontVariantNumeric: "tabular-nums" }}>
-              {rows.length}
-            </span>{" "}
-            <span className="argus-muted">records in scope</span>
-          </p>
-          <ScaffoldNote>
-            Aggregation “{str(config, "aggregationDefinitionId")}” is not evaluated yet; this is the
-            authorized record count only. TODO(implementation): server-side aggregation via the data
-            port.
-          </ScaffoldNote>
-        </>
+        <p
+          className="m-0 grid min-w-0 gap-0.5"
+          // TODO(implementation): aggregation definitions; until then the tile is a record count.
+          title={`Record count only; aggregation "${str(config, "aggregationDefinitionId")}" is not implemented.`}
+        >
+          <span className="boards-visually-hidden">{label}: </span>
+          <span className="boards-stat-value">{rows.length}</span>
+          <span className="argus-muted truncate text-sm">records in scope</span>
+        </p>
       )}
     </DataBody>
   );
@@ -417,16 +414,11 @@ function Body({ props }: { readonly props: BlockViewProps }): ReactElement {
     case "weather":
       return <ScaffoldNote>{props.displayName} view. TODO(implementation).</ScaffoldNote>;
     case "board-embed":
+      return <BoardEmbedBody props={props} />;
     case "link-list":
-      return (
-        <ScaffoldNote>{props.displayName} block. TODO(implementation): page blocks.</ScaffoldNote>
-      );
+      return <LinkListBody props={props} />;
     case "custom-component":
-      return (
-        <ScaffoldNote>
-          Custom component. TODO(implementation): sandboxed runtime from @argus/sdk.
-        </ScaffoldNote>
-      );
+      return <CustomComponentBody props={props} />;
   }
 }
 
@@ -444,10 +436,12 @@ export function BlockView(props: BlockViewProps): ReactElement {
   return (
     <section className="boards-block" aria-labelledby={titleId} data-block-kind={block.type}>
       <header className="boards-block-header">
-        <h3 className="boards-block-title" id={titleId}>
+        <h3 className="boards-block-title" id={titleId} title={block.name}>
           {block.name}
         </h3>
-        <span className="argus-muted">{props.displayName}</span>
+        <Badge size="sm" tone="neutral" variant="outline" className="boards-block-kind">
+          {props.displayName}
+        </Badge>
       </header>
       <div className="boards-block-body">
         {issues.length > 0 ? (

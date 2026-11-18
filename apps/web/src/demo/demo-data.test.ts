@@ -7,6 +7,10 @@ import {
   menuDefinitionSchema,
   positionSchema,
   recordEnvelopeSchema,
+  sessionSnapshotSchema,
+  studioDefinitionSummarySchema,
+  studioDocumentSchema,
+  studioVersionSummarySchema,
   tableDefinitionSchema,
   themeDefinitionSchema,
   viewDefinitionSchema,
@@ -20,7 +24,8 @@ import { demoAlertsSource } from "./alerts.js";
 import { createDemoBoardsEnvironment } from "./boards/index.js";
 import { demoIncidentsSource } from "./incidents.js";
 import { demoMapsSource } from "./maps.js";
-import { DEMO_ACTOR, DEMO_SCOPE } from "./scenario.js";
+import { DEMO_ACTOR, DEMO_INCIDENTS, DEMO_POSITIONS, DEMO_SCOPE } from "./scenario.js";
+import { createDemoSessionPort, createDemoStudioPort } from "./studio/index.js";
 import { createDemoTablesDataPort } from "./tables/index.js";
 import { createDemoWorkflowService } from "./workflows.js";
 
@@ -101,6 +106,49 @@ describe("demo data conforms to @argus/schema", () => {
       workflowDefinitionSchema.parse(workflow);
       for (const run of await service.listRuns(DEMO_SCOPE, workflow.id))
         workflowRunSchema.parse(run);
+    }
+  });
+});
+
+describe("demo studio data conforms to @argus/schema", () => {
+  it("session snapshots for every position and incident", async () => {
+    const session = createDemoSessionPort(0);
+    const first = sessionSnapshotSchema.parse(await session.get());
+    expect(first.activeIncident?.name).toBe("Harlow River Flood");
+    expect(first.studio).toEqual({
+      viewStudio: true,
+      editDefinitions: true,
+      publishDefinitions: true,
+      editCode: true,
+    });
+    for (const position of first.availablePositions) {
+      const snapshot = sessionSnapshotSchema.parse(
+        await session.selectPosition({ positionId: position.id }),
+      );
+      expect(snapshot.position.id).toBe(position.id);
+    }
+    const shelter = await session.selectPosition({ positionId: DEMO_POSITIONS.shelterManager });
+    expect(shelter.studio.viewStudio).toBe(false);
+    const switched = await session.selectIncident({ incidentId: DEMO_INCIDENTS.stormWatch });
+    expect(sessionSnapshotSchema.parse(switched).activeIncident?.id).toBe(
+      DEMO_INCIDENTS.stormWatch,
+    );
+  });
+
+  it("seeded boards, pages and components", async () => {
+    const studio = createDemoStudioPort(createDemoSessionPort(0), { latencyMs: 0 });
+    for (const kind of ["board", "page", "component"] as const) {
+      const list = await studio.list({ kind, search: null, cursor: null, limit: 50 });
+      expect(list.items.length).toBeGreaterThan(0);
+      for (const summary of list.items) {
+        studioDefinitionSummarySchema.parse(summary);
+        for (const version of await studio.listVersions({ kind, id: summary.id })) {
+          studioVersionSummarySchema.parse(version);
+          const got = await studio.get({ kind, id: summary.id, revision: version.version });
+          const document = studioDocumentSchema.parse(got?.document);
+          expect((await studio.validate({ document })).issues).toEqual([]);
+        }
+      }
     }
   });
 });

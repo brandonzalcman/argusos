@@ -3,14 +3,7 @@
   "title": "ArgusOS Helm values",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "external",
-    "secrets",
-    "serviceAccount",
-    "workloads",
-    "ingress",
-    "networkPolicy"
-  ],
+  "required": ["external", "secrets", "serviceAccount", "workloads", "ingress", "networkPolicy"],
   "properties": {
     "nameOverride": {
       "type": "string"
@@ -62,12 +55,7 @@
         "postgresql": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "host",
-            "port",
-            "database",
-            "sslMode"
-          ],
+          "required": ["host", "port", "database", "sslMode"],
           "properties": {
             "host": {
               "type": "string"
@@ -88,11 +76,7 @@
         "nats": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "host",
-            "port",
-            "tlsEnabled"
-          ],
+          "required": ["host", "port", "tlsEnabled"],
           "properties": {
             "host": {
               "type": "string"
@@ -108,12 +92,7 @@
         "objectStorage": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "endpoint",
-            "region",
-            "bucket",
-            "forcePathStyle"
-          ],
+          "required": ["endpoint", "region", "bucket", "forcePathStyle"],
           "properties": {
             "endpoint": {
               "type": "string"
@@ -135,18 +114,12 @@
     "secrets": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "api",
-        "realtime",
-        "worker"
-      ],
+      "required": ["api", "realtime", "worker"],
       "properties": {
         "api": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "existingSecret"
-          ],
+          "required": ["existingSecret"],
           "properties": {
             "existingSecret": {
               "type": "string"
@@ -156,9 +129,7 @@
         "realtime": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "existingSecret"
-          ],
+          "required": ["existingSecret"],
           "properties": {
             "existingSecret": {
               "type": "string"
@@ -168,9 +139,7 @@
         "worker": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "existingSecret"
-          ],
+          "required": ["existingSecret"],
           "properties": {
             "existingSecret": {
               "type": "string"
@@ -182,9 +151,7 @@
     "observability": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "otlpEndpoint"
-      ],
+      "required": ["otlpEndpoint"],
       "properties": {
         "otlpEndpoint": {
           "type": "string"
@@ -194,11 +161,7 @@
     "serviceAccount": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "create",
-        "annotations",
-        "automountServiceAccountToken"
-      ],
+      "required": ["create", "annotations", "automountServiceAccountToken"],
       "properties": {
         "create": {
           "type": "boolean"
@@ -220,12 +183,7 @@
     "workloads": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "web",
-        "api",
-        "realtime",
-        "worker"
-      ],
+      "required": ["web", "api", "realtime", "worker"],
       "properties": {
         "web": {
           "$ref": "#/$defs/workload"
@@ -244,13 +202,7 @@
     "ingress": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "enabled",
-        "className",
-        "annotations",
-        "hosts",
-        "tls"
-      ],
+      "required": ["enabled", "className", "annotations", "hosts", "tls"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -266,10 +218,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "host",
-              "paths"
-            ],
+            "required": ["host", "paths"],
             "properties": {
               "host": {
                 "type": "string",
@@ -278,11 +227,7 @@
               "paths": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "web",
-                  "api",
-                  "realtime"
-                ],
+                "required": ["web", "api", "realtime"],
                 "properties": {
                   "web": {
                     "$ref": "#/$defs/path"
@@ -312,12 +257,7 @@
     "networkPolicy": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "enabled",
-        "dns",
-        "ingressFrom",
-        "egress"
-      ],
+      "required": ["enabled", "dns", "ingressFrom", "egress"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -325,10 +265,7 @@
         "dns": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "namespaceLabels",
-            "podLabels"
-          ],
+          "required": ["namespaceLabels", "podLabels"],
           "properties": {
             "namespaceLabels": {
               "type": "object"
@@ -347,21 +284,12 @@
         "egress": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "postgresql",
-            "nats",
-            "objectStorage",
-            "electric",
-            "otlp"
-          ],
+          "required": ["postgresql", "nats", "objectStorage", "electric", "otlp"],
           "properties": {
             "postgresql": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "to",
-                "port"
-              ],
+              "required": ["to", "port"],
               "properties": {
                 "to": {
                   "type": "array",
@@ -377,10 +305,7 @@
             "nats": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "to",
-                "port"
-              ],
+              "required": ["to", "port"],
               "properties": {
                 "to": {
                   "type": "array",
@@ -396,10 +321,7 @@
             "objectStorage": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "to",
-                "port"
-              ],
+              "required": ["to", "port"],
               "properties": {
                 "to": {
                   "type": "array",
@@ -415,10 +337,7 @@
             "electric": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "to",
-                "port"
-              ],
+              "required": ["to", "port"],
               "properties": {
                 "to": {
                   "type": "array",
@@ -434,10 +353,7 @@
             "otlp": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "to",
-                "port"
-              ],
+              "required": ["to", "port"],
               "properties": {
                 "to": {
                   "type": "array",
@@ -483,12 +399,7 @@
         "image": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "repository",
-            "tag",
-            "digest",
-            "pullPolicy"
-          ],
+          "required": ["repository", "tag", "digest", "pullPolicy"],
           "properties": {
             "repository": {
               "type": "string",
@@ -503,11 +414,7 @@
               "pattern": "^$|^sha256:[a-f0-9]{64}$"
             },
             "pullPolicy": {
-              "enum": [
-                "Always",
-                "IfNotPresent",
-                "Never"
-              ]
+              "enum": ["Always", "IfNotPresent", "Never"]
             }
           }
         },
@@ -521,21 +428,13 @@
         "service": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "enabled",
-            "type",
-            "port"
-          ],
+          "required": ["enabled", "type", "port"],
           "properties": {
             "enabled": {
               "type": "boolean"
             },
             "type": {
-              "enum": [
-                "ClusterIP",
-                "NodePort",
-                "LoadBalancer"
-              ]
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer"]
             },
             "port": {
               "$ref": "#/$defs/port"
@@ -545,10 +444,7 @@
         "probes": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "liveness",
-            "readiness"
-          ],
+          "required": ["liveness", "readiness"],
           "properties": {
             "liveness": {
               "$ref": "#/$defs/probe"
@@ -560,24 +456,15 @@
         },
         "resources": {
           "type": "object",
-          "required": [
-            "requests",
-            "limits"
-          ],
+          "required": ["requests", "limits"],
           "properties": {
             "requests": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "cpu",
-                "memory"
-              ],
+              "required": ["cpu", "memory"],
               "properties": {
                 "cpu": {
-                  "type": [
-                    "string",
-                    "number"
-                  ]
+                  "type": ["string", "number"]
                 },
                 "memory": {
                   "type": "string"
@@ -587,16 +474,10 @@
             "limits": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "cpu",
-                "memory"
-              ],
+              "required": ["cpu", "memory"],
               "properties": {
                 "cpu": {
-                  "type": [
-                    "string",
-                    "number"
-                  ]
+                  "type": ["string", "number"]
                 },
                 "memory": {
                   "type": "string"
@@ -608,12 +489,7 @@
         "autoscaling": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "enabled",
-            "minReplicas",
-            "maxReplicas",
-            "targetCPUUtilizationPercentage"
-          ],
+          "required": ["enabled", "minReplicas", "maxReplicas", "targetCPUUtilizationPercentage"],
           "properties": {
             "enabled": {
               "type": "boolean"
@@ -636,10 +512,7 @@
         "pdb": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "enabled",
-            "minAvailable"
-          ],
+          "required": ["enabled", "minAvailable"],
           "properties": {
             "enabled": {
               "type": "boolean"
@@ -661,9 +534,7 @@
     "probe": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "properties": {
         "path": {
           "$ref": "#/$defs/path"

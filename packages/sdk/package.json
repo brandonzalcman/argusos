@@ -17,7 +17,24 @@
     "./server": {
       "types": "./dist/server/plugin.d.ts",
       "import": "./dist/server/plugin.js"
-    }
+    },
+    "./host": {
+      "types": "./dist/host/index.d.ts",
+      "import": "./dist/host/index.js"
+    },
+    "./sandbox-runtime": {
+      "types": "./dist/sandbox-runtime.d.ts",
+      "import": "./dist/sandbox-runtime.js"
+    },
+    "./compiler": {
+      "types": "./dist/sandbox/compile.d.ts",
+      "import": "./dist/sandbox/compile.js"
+    },
+    "./templates": {
+      "types": "./dist/templates/index.d.ts",
+      "import": "./dist/templates/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

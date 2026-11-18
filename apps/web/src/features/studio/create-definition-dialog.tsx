@@ -1,3 +1,4 @@
+import { coreBlockRegistry } from "@argus/blocks";
 import type {
   BlockType,
   StudioCreateTemplate,
@@ -6,7 +7,6 @@ import type {
 } from "@argus/schema";
 import { blockTypeSchema, definitionKeySchema } from "@argus/schema";
 import { Button, DialogContent, Field, Input, Select } from "@argus/ui";
-import { coreBlockRegistry } from "@argus/blocks";
 import { type FormEvent, type ReactElement, useId, useState } from "react";
 import { kindLabels, suggestKey } from "./studio-links.js";
 
@@ -80,7 +80,9 @@ export function CreateDefinitionDialog({
   const tableError =
     submitted && template === "from-table" && tableId.trim() === "" ? "Choose a table." : undefined;
   const sourceError =
-    submitted && template === "duplicate" && sourceId === "" ? "Choose what to duplicate." : undefined;
+    submitted && template === "duplicate" && sourceId === ""
+      ? "Choose what to duplicate."
+      : undefined;
 
   const buildTemplate = (): StudioCreateTemplate | null => {
     switch (template) {

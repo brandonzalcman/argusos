@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { PastedCell } from "./batch-model.js";
 import { CellEditor } from "./cell-editor.js";
 import { isFieldEditable } from "./field-catalog.js";
 import { cellValue, type DisplayRow, formatCellValue } from "./grid-model.js";
@@ -24,13 +25,6 @@ export type PendingEdits = ReadonlyMap<
   string,
   ReadonlyMap<string, { readonly value: unknown; readonly state: PendingEditState }>
 >;
-
-/** One pasted cell aimed at a concrete record and field. */
-export interface PastedCell {
-  readonly record: RecordEnvelope;
-  readonly field: FieldDefinition;
-  readonly raw: string;
-}
 
 export interface DataGridProps {
   readonly caption: string;
@@ -380,7 +374,7 @@ export function DataGrid({
   return (
     <div
       ref={scrollerRef}
-      className="relative h-[min(70vh,48rem)] min-h-80 overflow-auto rounded-md border border-border bg-surface text-fg [contain:strict] focus-visible:outline-2 focus-visible:outline-focus"
+      className="relative h-[min(70vh,48rem)] min-h-80 overflow-auto bg-surface text-fg [contain:strict] focus-visible:outline-2 focus-visible:outline-focus"
       role="grid"
       aria-label={caption}
       aria-rowcount={rows.length + 1}
@@ -426,7 +420,9 @@ export function DataGrid({
                   {direction === "descending" ? (
                     <ArrowDown aria-hidden="true" className="size-3.5 shrink-0 text-accent-text" />
                   ) : null}
-                  {direction !== "none" ? <span className="sr-only"> sorted {direction}</span> : null}
+                  {direction !== "none" ? (
+                    <span className="sr-only"> sorted {direction}</span>
+                  ) : null}
                 </button>
               </div>
             );

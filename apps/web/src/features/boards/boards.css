@@ -243,6 +243,7 @@
 }
 
 .boards-block {
+  container-type: inline-size;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
@@ -296,9 +297,9 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 80rem) {
   .boards-builder {
-    grid-template-columns: 15rem minmax(0, 1fr) 21rem;
+    grid-template-columns: 14rem minmax(0, 1fr) 20rem;
     align-items: start;
   }
 }
@@ -315,7 +316,7 @@
   font-size: 1rem;
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 80rem) {
   .boards-pane-sticky {
     position: sticky;
     top: var(--argus-panel-p);
@@ -363,7 +364,7 @@
 }
 
 .boards-canvas-block[data-selected="true"] > .boards-block {
-  outline: 0.1875rem solid var(--argus-color-accent);
+  outline: 2px solid var(--argus-color-focus);
   outline-offset: 0;
 }
 
@@ -377,22 +378,48 @@
 }
 
 .boards-grip {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
   cursor: grab;
   touch-action: none;
   user-select: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.boards-canvas-block:hover .boards-grip,
+.boards-canvas-block:focus-within .boards-grip,
+.boards-canvas-block[data-selected="true"] .boards-grip,
+.boards-grip:focus-visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boards-grip {
+    transition: none;
+  }
 }
 
 .boards-resize {
   position: absolute;
   inset-inline-end: 0;
   inset-block-end: 0;
-  width: 1.25rem;
-  height: 1.25rem;
+  display: grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
   border: 0;
-  border-start-start-radius: var(--argus-radius-sm);
-  background: var(--argus-color-accent);
+  background: transparent;
+  color: var(--argus-color-fg-muted);
   cursor: nwse-resize;
   touch-action: none;
+}
+
+.boards-canvas-block:hover .boards-resize,
+.boards-canvas-block[data-selected="true"] .boards-resize {
+  color: var(--argus-color-focus);
 }
 
 .boards-toolbar {
@@ -521,4 +548,124 @@ dialog.boards-dialog::backdrop {
 .boards-canvas-block[data-preview-hidden="true"] > .boards-block {
   opacity: 0.45;
   border-style: dashed;
+}
+
+.boards-canvas-block .boards-block-header {
+  padding-inline-end: 2.25rem;
+}
+
+/* Stacked (tablet/phone) builder: canvas first, palette scrolls in a bounded box. */
+@media (max-width: 79.999rem) {
+  .boards-builder > :nth-child(2) {
+    order: -1;
+  }
+
+  .boards-builder > nav {
+    max-height: 22rem;
+    overflow: auto;
+  }
+}
+
+/* Design | Code segmented switch (radio-group semantics; native radios stay focusable). */
+.boards-segmented {
+  display: inline-flex;
+  margin: 0;
+  padding: 2px;
+  min-width: 0;
+  border: 1px solid var(--argus-color-border);
+  border-radius: var(--argus-radius-sm);
+  background: var(--argus-color-surface-sunken);
+}
+
+.boards-segment {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.boards-segment input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.boards-segment span {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(var(--argus-control-h) - 8px);
+  padding: 0 0.875rem;
+  border-radius: var(--argus-radius-sm);
+  color: var(--argus-color-fg-muted);
+  font-weight: 500;
+}
+
+.boards-segment input:checked + span {
+  background: var(--argus-color-accent);
+  color: var(--argus-color-on-accent);
+}
+
+.boards-segment input:focus-visible + span {
+  outline: 2px solid var(--argus-color-focus);
+  outline-offset: 1px;
+}
+
+.boards-segment input:not(:checked):hover + span {
+  color: var(--argus-color-fg);
+}
+
+.boards-block-pick {
+  width: 100%;
+  justify-content: space-between;
+  text-align: start;
+}
+
+.boards-block-pick[aria-pressed="true"] {
+  border-color: var(--argus-color-accent);
+  box-shadow: inset 0 0 0 1px var(--argus-color-accent);
+}
+
+/* Code mode: palette collapses to a block picker, the canvas becomes the code view. */
+.boards-code-pane {
+  min-width: 0;
+}
+
+@media (min-width: 80rem) {
+  .boards-builder[data-mode="code"] {
+    grid-template-columns: 14rem minmax(0, 1fr) 26rem;
+  }
+}
+
+/* Kind label only when the block is wide enough; the title always truncates. */
+.boards-block-title {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.boards-block-kind {
+  flex: none;
+  font-size: 0.6875rem;
+}
+
+@container (max-width: 20rem) {
+  .boards-block-kind {
+    display: none;
+  }
+}
+
+.boards-stat-value {
+  font-size: clamp(1.25rem, 14cqi, 2rem);
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.boards-canvas-block .boards-stat-value {
+  font-size: clamp(1.125rem, 10cqi, 1.75rem);
+}
+
+.boards-pane .boards-block-title,
+.boards-canvas .boards-block-title {
+  font-size: 0.8125rem;
 }

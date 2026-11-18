@@ -1,23 +1,59 @@
 # @argus/api
 
-Fastify composition root and public contracts for the internal tRPC API and versioned integration REST API. This package is a scaffold: every behavior entry point throws `TODO(implementation)` and no server, query, identity provider, or storage connection is active.
+Fastify composition root for the internal tRPC API (`/trpc`) and Better Auth (`/api/auth/*`). Audience: contributors.
 
-## Implementation order
+To run it locally without Docker, see [docs/development/api-local.md](../../docs/development/api-local.md). Design decisions for this slice are in [docs/plans/2026-11-19-backend-studio-session.md](../../docs/plans/2026-11-19-backend-studio-session.md).
 
-1. Validate environment configuration and compose Fastify, OpenTelemetry, Better Auth, OIDC, and PostgreSQL without exposing secrets.
-2. Implement request authentication and derive an immutable tenant, user, position, incident, request, and audit context. Never accept tenant or position identity from an unverified request body.
-3. Implement Drizzle repositories and reviewed migrations for system tables. Set database session claims inside each transaction and enforce **PostgreSQL row-level security (RLS) on every tenant-owned system and user table**. RLS is a mandatory second boundary, not an optional optimization.
-4. Enforce position RBAC plus incident/jurisdiction ABAC in services. Apply **field-level security (FLS) in every read, write, export, realtime event, and generated table endpoint**; filter rejected fields rather than relying on clients to hide them.
-5. Add tRPC domain routers and REST handlers against the same services. Generate OpenAPI 3.1 from the REST contracts; never maintain a divergent access path.
-6. Add optimistic version checks, append-only audit events, scoped API keys, file quarantine, public-form review, and readiness checks. Test cross-tenant, cross-incident, exercise/live, and deleted-position denial cases.
+## Status
 
-System records use Drizzle. Physical user tables must be migrated only through `@argus/ddl-engine`; this app must not concatenate identifiers or values into SQL.
+Implemented (the "session + studio" slice):
 
-## API boundaries
+- `session` tRPC router: `get` (public, null when anonymous), `selectPosition`, `selectIncident`.
+- `studio` tRPC router: `list`, `get`, `getPageBySlug`, `listVersions`, `validate`, `create`, `saveDraft`, `publish`, `rollback`, `archive`, with optimistic version checks and idempotency keys.
+- Better Auth email and password at `/api/auth/*` (public sign-up disabled).
+- Drizzle system schema and reviewed SQL migrations with forced row-level security and append-only audit tables.
+- `/health/live` and `/health/ready`.
 
-- tRPC is for the authenticated ArgusOS application.
-- `/api/v1/*` is the stable integration surface and accepts only explicitly scoped API keys or sessions.
-- Better Auth owns its authentication endpoints and callback state. OIDC discovery, PKCE, nonce, and token validation are adapter responsibilities.
-- Public submissions always enter review and cannot directly mutate live incident records.
+Still stubs (`TODO(implementation)`): REST `/api/v1` handlers and OpenAPI (`src/rest/`), records and user tables, OIDC, MFA, API keys, ElectricSQL shapes, NATS outbox. CEL expressions are not parsed yet, so `studio.validate` returns a warning when a document contains CEL. Migration details are in `migrations/README.md`.
 
-The Dockerfile is a build scaffold only. It has not been built or run.
+## Source layout (`src/`)
+
+| Path | Purpose |
+| --- | --- |
+| `main.ts`, `composition.ts` | Entry point; Fastify composition, CORS, helmet, health probes, shutdown |
+| `config/env.ts` | Environment validation and `env:NAME` secret references |
+| `db/` | Database client (postgres.js or PGlite), migrator, tenant transactions |
+| `persistence/` | Drizzle system schema and repositories |
+| `auth/` | Better Auth instance and ports |
+| `http/request-context.ts` | Session cookie to request context |
+| `trpc/` | tRPC init, procedures, `AppRouter` |
+| `session/`, `studio/` | Domain services and routers |
+| `rest/` | REST and OpenAPI contracts (stubs) |
+| `scripts/` | `migrate.ts`, `seed-dev.ts` |
+| `errors.ts` | `ApiError` carried in `error.data.apiError` |
+
+Tests are in `test/`.
+
+## Scripts
+
+Run as `pnpm --filter @argus/api <script>`.
+
+| Script | What it does |
+| --- | --- |
+| `dev:local` | Start the API with `tsx watch`, loading the repo-root `.env` if present |
+| `start` | Run the built `dist/main.js` |
+| `build` / `dev` | `tsc` build / watch |
+| `typecheck` | Strict type check |
+| `test` | Vitest (in-memory PGlite) |
+| `db:generate` | Generate SQL from the Drizzle schema |
+| `db:migrate` | Apply migrations to `DATABASE_URL` |
+| `db:seed` | Fictional dev seed (needs `ARGUS_ALLOW_DEV_SEED=true`) |
+
+## Security notes
+
+- Tenant, user and position come only from the verified Better Auth session and server-side mappings, never from headers or bodies.
+- Each request runs in a transaction with `SET LOCAL ROLE argus_app` and transaction-local claims; every tenant-owned table has forced RLS.
+- Audit tables are append-only (a trigger rejects UPDATE, DELETE and TRUNCATE for every role).
+- Custom component source is stored only. It is never compiled or executed on the server.
+- Browser `Origin` headers on `/trpc` must be on the `PUBLIC_WEB_ORIGIN` allowlist.
+- Inaccessible and other-tenant ids return `not-found`, not `forbidden`.

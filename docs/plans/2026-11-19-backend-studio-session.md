@@ -1,6 +1,6 @@
 # Backend slice: session + studio API (dev-mode builder end to end)
 
-Status: in progress. Owner: backend top-level thread. Parent plan:
+Status: done (2026-11-19) — typecheck, lint, format:check, test pass; API smoke-tested on PGlite. Follow-ups below. Owner: backend top-level thread. Parent plan:
 [2026-11-19-dev-mode-studio.md](2026-11-19-dev-mode-studio.md) (`backend` row).
 
 Goal: the web app's dev mode (board / page / component builder) and session context work end to
@@ -15,9 +15,9 @@ and `apps/web/src/services/studio.ts` (`StudioPort`, `SessionPort`).
    binaries or install scripts). It supports schemas, roles, `SET ROLE`, forced RLS, triggers and
    `plpgsql`, so the RLS/audit design is exercised for real. Drizzle has first-class drivers for
    both PGlite and postgres.js, so the same schema/migrations/queries run on PostgreSQL 18 in
-   deployment (`postgres` driver). `TODO(verify)`: PGlite's bundled major version (17.x at last
-   check) differs from the PostgreSQL 18 production target, and PostGIS is not available in
-   PGlite; nothing in this slice uses PostGIS or PG18-only features. Testcontainers PostgreSQL 18
+   deployment (`postgres` driver). PGlite 0.5.15 reports PostgreSQL 18.6 (checked at runtime);
+   PostGIS is not available in PGlite and nothing in this slice uses it. `TODO(verify)`: run the
+   same suites on server PostgreSQL 18 (postgres.js driver, real login roles) once Docker exists. Testcontainers PostgreSQL 18
    suites stay `it.todo` until Docker is available. `embedded-postgres` (native PG18) was rejected:
    only beta-tagged releases and platform binaries.
    - `DATABASE_URL=postgresql://…` → postgres.js (production/compose).
@@ -129,13 +129,13 @@ scripts/seed-dev.ts      explicit fictional dev seed (refuses outside developmen
 
 | id | agent | owns | depends on | skills | status |
 |----|-------|------|-----------|--------|--------|
-| b0-foundation | implementer (sonnet) | catalog/lockfile, `apps/api/package.json`, `config/`, `db/`, `persistence/`, `errors.ts`, `trpc/init.ts`, `migrations/`, test harness, stub files for b1/b2 | — | argus-ddl-migration, argus-testing | todo |
-| b1-auth-session | implementer (sonnet) | `auth/`, `http/`, `session/`, `composition.ts`, `main.ts`, `trpc/router.ts`, `scripts/`, `.env.example` | b0 | argus-testing | todo |
-| b2-studio | implementer (sonnet) | `studio/**` | b0 | argus-ddl-migration, argus-testing | todo |
-| b3-web-adapter | implementer (sonnet) | `apps/web/src/services/api/**` | b1, b2 | argus-testing | todo |
-| b4-docs | docs-writer (sonnet) | `apps/api/README.md`, `docs/development/api-local.md` | b1, b2 | — | todo |
-| b5-review | reviewer (sonnet) | read-only: authz, tenant isolation, audit, idempotency | b3 | — | todo |
-| b6-verify | orchestrator | workspace checks, plan rows | b5 | — | todo |
+| b0-foundation | implementer (sonnet) | catalog/lockfile, `apps/api/package.json`, `config/`, `db/`, `persistence/`, `errors.ts`, `trpc/init.ts`, `migrations/`, test harness, stub files for b1/b2 | — | argus-ddl-migration, argus-testing | done |
+| b1-auth-session | implementer (sonnet) | `auth/`, `http/`, `session/`, `composition.ts`, `main.ts`, `trpc/router.ts`, `scripts/`, `.env.example` | b0 | argus-testing | done |
+| b2-studio | implementer (sonnet) | `studio/**` | b0 | argus-ddl-migration, argus-testing | done |
+| b3-web-adapter | implementer (sonnet) | `apps/web/src/services/api/**` | b1, b2 | argus-testing | done |
+| b4-docs | docs-writer (sonnet) | `apps/api/README.md`, `docs/development/api-local.md` | b1, b2 | — | done |
+| b5-review | reviewer (sonnet) | read-only: authz, tenant isolation, audit, idempotency | b3 | — | done |
+| b6-verify | orchestrator | workspace checks, plan rows | b5 | — | done |
 
 ## Backlog items handled here (scaffold-integration.md)
 
@@ -148,3 +148,30 @@ scripts/seed-dev.ts      explicit fictional dev seed (refuses outside developmen
 
 REST `/api/v1` handlers, OpenAPI, records/tables/DDL, ElectricSQL shapes, NATS outbox, worker jobs,
 OIDC, MFA, Testcontainers PG18 runs, Docker/Helm changes.
+
+## Review outcome (b5) and follow-ups
+
+Fixed after review: `studio.validate` is a POST mutation (documents never travel in URLs; request
+logs drop query strings); page publish/rollback take a per-tenant `pg_advisory_xact_lock` before
+checking homepage claims and rollback re-runs reference validation; `archive` of a board/component
+with published dependents → `dependency-conflict` (`details.dependents`); `NODE_ENV` is required
+(fail closed); invalid list cursors → `validation-failed`; audit rows carry the incoming
+`x-correlation-id`; web error mapping for non-tRPC 403/401/429 and stricter API base URL.
+
+Open follow-ups (not done, need a decision or real PostgreSQL):
+
+1. Production roles: runtime login must be a non-owner `NOBYPASSRLS` member of `argus_app`, with
+   migrations/identity on a separate role and Better Auth on its own pool. Untested — PGlite runs
+   as superuser.
+2. Sign-in/sign-out are not audited (`audit.session_events` `sign-in` op unused); add a Better Auth
+   hook. Audit actor/definition columns lack composite FKs.
+3. `TODO(decision)`: any tenant position may select any non-archived incident (no incident ↔
+   position assignment yet).
+4. Published custom component source is readable by every authenticated position (needed by the
+   runtime sandbox) — confirm intended.
+5. No rate limit on `/trpc`; Better Auth rate limiting is in-memory per instance.
+6. Concurrency tests run on single-connection PGlite; re-run on PostgreSQL 18 (Testcontainers todo).
+7. Contract issues for the UI lead: blank board is unsatisfiable (`boardDefinitionSchema`
+   `dataSources`/`views` `.min(1)`); `jsonValueSchema` should be `z.ZodType<JsonValue, JsonValue>`
+   (router uses a narrowing cast until then); no `not-implemented` `ApiErrorCode` (from-table uses
+   `unavailable`); `StudioDefinitionSummary` lacks `blockCount` (boards adapter does N+1 fetches).

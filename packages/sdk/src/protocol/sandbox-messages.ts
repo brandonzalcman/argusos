@@ -70,9 +70,7 @@ export type SandboxToHostControlMessage =
   | SandboxHeartbeatMessage;
 
 export function isSandboxControlKind(input: unknown): boolean {
-  return (
-    isObj(input) && typeof input["kind"] === "string" && input["kind"].startsWith("sandbox.")
-  );
+  return isObj(input) && typeof input.kind === "string" && input.kind.startsWith("sandbox.");
 }
 
 const CONSOLE_LEVELS: readonly SandboxConsoleLevel[] = ["log", "info", "warn", "error", "debug"];
@@ -88,16 +86,16 @@ function intOrNull(o: Obj, key: string): number | null {
 export function parseSandboxToHostMessage(input: unknown): SandboxToHostControlMessage {
   if (!isObj(input)) fail("not an object");
   assertJsonValue(input, SANDBOX_CONTROL_MAX_BYTES);
-  switch (input["kind"]) {
+  switch (input.kind) {
     case "sandbox.boot":
       return { kind: "sandbox.boot" };
     case "sandbox.ready": {
-      const version = input["version"];
+      const version = input.version;
       if (typeof version !== "number" || !Number.isInteger(version)) fail("version");
       return { kind: "sandbox.ready", sessionId: strField(input, "sessionId"), version };
     }
     case "sandbox.render-error": {
-      const phase = input["phase"];
+      const phase = input.phase;
       if (phase !== "compile" && phase !== "execute" && phase !== "render") fail("phase");
       return {
         kind: "sandbox.render-error",
@@ -109,8 +107,8 @@ export function parseSandboxToHostMessage(input: unknown): SandboxToHostControlM
       };
     }
     case "sandbox.console": {
-      const level = input["level"] as SandboxConsoleLevel;
-      const args = input["args"];
+      const level = input.level as SandboxConsoleLevel;
+      const args = input.args;
       if (!CONSOLE_LEVELS.includes(level)) fail("level");
       if (
         !Array.isArray(args) ||
@@ -127,7 +125,7 @@ export function parseSandboxToHostMessage(input: unknown): SandboxToHostControlM
       };
     }
     case "sandbox.resize": {
-      const height = input["height"];
+      const height = input.height;
       if (typeof height !== "number" || !Number.isFinite(height) || height < 0) fail("height");
       return { kind: "sandbox.resize", sessionId: strField(input, "sessionId"), height };
     }
@@ -142,12 +140,12 @@ export function parseSandboxToHostMessage(input: unknown): SandboxToHostControlM
 export function parseSandboxLoadMessage(input: unknown): SandboxLoadMessage {
   if (!isObj(input)) fail("not an object");
   assertJsonValue(input, SANDBOX_LOAD_MAX_BYTES);
-  if (input["kind"] !== "sandbox.load") fail("unknown kind");
-  const version = input["version"];
+  if (input.kind !== "sandbox.load") fail("unknown kind");
+  const version = input.version;
   if (typeof version !== "number" || !Number.isInteger(version) || version < 0) fail("version");
   const source = strField(input, "source", SANDBOX_SOURCE_MAX_LENGTH);
-  const props = input["props"];
-  const theme = input["theme"];
+  const props = input.props;
+  const theme = input.theme;
   if (!isObj(props)) fail("props");
   if (!isObj(theme)) fail("theme");
   const safeTheme: Record<string, string> = {};
@@ -157,10 +155,14 @@ export function parseSandboxLoadMessage(input: unknown): SandboxLoadMessage {
     if (typeof value !== "string" || value.length > 200 || /[;{}<>\\]/.test(value)) continue;
     safeTheme[name] = value;
   }
-  const density = input["density"];
+  const density = input.density;
   if (density !== "compact" && density !== "comfortable") fail("density");
-  const caps = input["grantedCapabilities"];
-  if (!Array.isArray(caps) || caps.length > 32 || caps.some((c: unknown) => typeof c !== "string")) {
+  const caps = input.grantedCapabilities;
+  if (
+    !Array.isArray(caps) ||
+    caps.length > 32 ||
+    caps.some((c: unknown) => typeof c !== "string")
+  ) {
     fail("grantedCapabilities");
   }
   return {
@@ -178,7 +180,11 @@ export function parseSandboxLoadMessage(input: unknown): SandboxLoadMessage {
 }
 
 /** Clamp a reported content height to the permitted range. */
-export function clampSandboxHeight(height: number, min = SANDBOX_MIN_HEIGHT, max = SANDBOX_MAX_HEIGHT): number {
+export function clampSandboxHeight(
+  height: number,
+  min = SANDBOX_MIN_HEIGHT,
+  max = SANDBOX_MAX_HEIGHT,
+): number {
   if (!Number.isFinite(height)) return min;
   return Math.min(max, Math.max(min, Math.ceil(height)));
 }

@@ -1,4 +1,6 @@
 import type { BlockRegistry, BlockRenderContext, BoardDataPort } from "@argus/blocks";
+import { IconButton } from "@argus/ui";
+import { GripVertical } from "@argus/ui/icons";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -119,7 +121,10 @@ export function BuilderCanvas(props: BuilderCanvasProps): ReactElement {
       colStep,
       rowStep,
       items,
-      group: mode === "move" && selectedIds.length > 1 && selectedIds.includes(item.blockId) ? new Set(selectedIds) : null,
+      group:
+        mode === "move" && selectedIds.length > 1 && selectedIds.includes(item.blockId)
+          ? new Set(selectedIds)
+          : null,
     };
     if (!(mode === "move" && selectedIds.length > 1 && selectedIds.includes(item.blockId))) {
       props.onSelect(item.blockId, event.shiftKey || event.ctrlKey || event.metaKey);
@@ -286,18 +291,15 @@ export function BuilderCanvas(props: BuilderCanvasProps): ReactElement {
                   Hidden for {props.previewLabel ?? "this position"}
                 </span>
               ) : null}
-              <button
-                type="button"
+              <IconButton
                 tabIndex={-1}
-                className="boards-btn boards-grip"
-                style={{
-                  position: "absolute",
-                  insetBlockStart: 2,
-                  insetInlineEnd: 2,
-                  minHeight: "1.5rem",
-                  padding: "0 0.375rem",
-                }}
-                aria-label={`Drag to move ${block.name}. Keyboard users: select the block and press Alt plus arrow keys.`}
+                size="sm"
+                variant="ghost"
+                tooltipSide="left"
+                className="boards-grip"
+                icon={<GripVertical />}
+                label={`Drag to move ${block.name}`}
+                aria-description="Keyboard users: select the block and press Alt plus arrow keys."
                 onPointerDown={(event) => begin(event, item, "move")}
                 onPointerMove={move}
                 onPointerUp={(event) => end(event, true)}
@@ -308,19 +310,28 @@ export function BuilderCanvas(props: BuilderCanvasProps): ReactElement {
                     setPreview(null);
                   }
                 }}
-              >
-                ⠿ Move
-              </button>
+              />
               <button
                 type="button"
                 tabIndex={-1}
                 className="boards-resize"
                 aria-label={`Drag to resize ${block.name}. Keyboard users: select the block and press Alt Shift plus arrow keys.`}
+                title="Resize"
                 onPointerDown={(event) => begin(event, item, "resize")}
                 onPointerMove={move}
                 onPointerUp={(event) => end(event, true)}
                 onPointerCancel={(event) => end(event, false)}
-              />
+              >
+                <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+                  <path
+                    d="M9 3 3 9M9 6 6 9"
+                    stroke="currentColor"
+                    strokeWidth="1.25"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
             </div>
           );
         })}

@@ -2,6 +2,7 @@ import type { FieldDefinition } from "@argus/schema";
 import {
   Button,
   Checkbox,
+  cn,
   Input,
   Popover,
   PopoverAnchor,
@@ -19,10 +20,16 @@ import {
   useState,
 } from "react";
 import { NativeSelect, nativeControl } from "./controls.js";
-import { parseEditorInput } from "./parse-input.js";
 import { formatCellValue } from "./grid-model.js";
 import { lookupLabel, rememberLookupLabel } from "./lookup-cache.js";
-import { type AttachmentValue, type LookupOption, useTablesData } from "./tables-port.js";
+import { parseEditorInput } from "./parse-input.js";
+import {
+  type AttachmentValue,
+  type LookupOption,
+  searchLookupCompat,
+  uploadAttachmentCompat,
+  useTablesData,
+} from "./tables-port.js";
 
 export { parseEditorInput };
 
@@ -58,7 +65,11 @@ function initialText(field: FieldDefinition, value: unknown): string {
   if (value === null || value === undefined) {
     return "";
   }
-  if (field.type === "percent" && field.config.storage === "fraction" && typeof value === "number") {
+  if (
+    field.type === "percent" &&
+    field.config.storage === "fraction" &&
+    typeof value === "number"
+  ) {
     return String(Number((value * 100).toFixed(field.config.scale)));
   }
   if (field.type === "date-time") {
@@ -193,7 +204,7 @@ function InlineEditor({ field, value, onCommit, onCancel }: CellEditorProps): Re
         aria-label={field.name}
         aria-invalid={error !== null}
         aria-describedby={error ? errorId : undefined}
-        className={`${nativeControl} ${small} ${inputType === "number" ? "text-end font-mono" : ""}`}
+        className={cn(nativeControl, small, inputType === "number" && "text-end font-mono")}
         type={inputType}
         step={inputType === "number" ? "any" : undefined}
         value={draft}
@@ -206,7 +217,14 @@ function InlineEditor({ field, value, onCommit, onCancel }: CellEditorProps): Re
   );
 }
 
-function PopoverEditor({ field, value, tableId, recordId, onCommit, onCancel }: CellEditorProps): ReactElement {
+function PopoverEditor({
+  field,
+  value,
+  tableId,
+  recordId,
+  onCommit,
+  onCancel,
+}: CellEditorProps): ReactElement {
   const [draft, setDraft] = useState<unknown>(value ?? null);
   const doneRef = useRef(false);
   const commit = (next: unknown): void => {
@@ -262,7 +280,9 @@ function PopoverEditor({ field, value, tableId, recordId, onCommit, onCancel }: 
           kind="link"
           multiple={field.config.allowMultiple}
           tableId={tableId}
-          selected={Array.isArray(draft) ? draft.map(String) : typeof draft === "string" ? [draft] : []}
+          selected={
+            Array.isArray(draft) ? draft.map(String) : typeof draft === "string" ? [draft] : []
+          }
           onChange={(ids) => setDraft(field.config.allowMultiple ? ids : (ids[0] ?? null))}
         />
       );
@@ -291,11 +311,13 @@ function PopoverEditor({ field, value, tableId, recordId, onCommit, onCancel }: 
   return (
     <Popover open onOpenChange={(open) => !open && cancel()}>
       <PopoverAnchor asChild>
-        <span className="min-w-0 flex-1 truncate text-fg-muted">{formatCellValue(field, value) || "…"}</span>
+        <span className="min-w-0 flex-1 truncate text-fg-muted">
+          {formatCellValue(field, value) || "…"}
+        </span>
       </PopoverAnchor>
       <PopoverContent aria-label={`Edit ${field.name}`} className="w-80 max-w-[90vw]">
-        <div
-          className="grid gap-3"
+        <fieldset
+          className="m-0 grid min-w-0 gap-3 border-0 p-0"
           onKeyDown={(e) => {
             e.stopPropagation();
             if (e.key === "Escape") {
@@ -303,7 +325,7 @@ function PopoverEditor({ field, value, tableId, recordId, onCommit, onCancel }: 
             }
           }}
         >
-          <p className="text-sm font-semibold text-fg">{field.name}</p>
+          <legend className="mb-1 text-sm font-semibold text-fg">{field.name}</legend>
           {body}
           {field.required && (draft === null || (Array.isArray(draft) && draft.length === 0)) ? (
             <p role="alert" className="text-xs text-critical">
@@ -318,7 +340,7 @@ function PopoverEditor({ field, value, tableId, recordId, onCommit, onCancel }: 
               Done
             </Button>
           </div>
-        </div>
+        </fieldset>
       </PopoverContent>
     </Popover>
   );
@@ -349,7 +371,9 @@ function MultiSelectBody({
               checked={checked}
               disabled={!checked && max !== null && selected.length >= max}
               onCheckedChange={(state) =>
-                onChange(state === true ? [...selected, o.id] : selected.filter((id) => id !== o.id))
+                onChange(
+                  state === true ? [...selected, o.id] : selected.filter((id) => id !== o.id),
+                )
               }
             />
           );
@@ -387,8 +411,13 @@ function LookupBody({
     let active = true;
     setResult({ state: "loading" });
     const timer = setTimeout(() => {
-      port
-        .searchLookupOptions({ tableId, fieldId: field.id, kind, query: query.trim(), limit: 20 })
+      searchLookupCompat(port, {
+        tableId,
+        fieldId: field.id,
+        kind,
+        query: query.trim(),
+        limit: 20,
+      })
         .then((options) => {
           if (active) {
             for (const o of options) {
@@ -399,7 +428,10 @@ function LookupBody({
         })
         .catch((error: unknown) => {
           if (active) {
-            setResult({ state: "error", message: error instanceof Error ? error.message : "Search failed." });
+            setResult({
+              state: "error",
+              message: error instanceof Error ? error.message : "Search failed.",
+            });
           }
         });
     }, 200);
@@ -482,7 +514,11 @@ function LookupBody({
 }
 
 function formatBytes(n: number): string {
-  return n < 1024 ? `${n} B` : n < 1_048_576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1_048_576).toFixed(1)} MB`;
+  return n < 1024
+    ? `${n} B`
+    : n < 1_048_576
+      ? `${(n / 1024).toFixed(1)} KB`
+      : `${(n / 1_048_576).toFixed(1)} MB`;
 }
 
 function AttachmentBody({
@@ -519,7 +555,12 @@ function AttachmentBody({
     }
     setBusy(true);
     try {
-      const stored = await port.uploadAttachment({ tableId, recordId, fieldId: field.id, file });
+      const stored = await uploadAttachmentCompat(port, {
+        tableId,
+        recordId,
+        fieldId: field.id,
+        file,
+      });
       onChange([...files, stored]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed.");
@@ -537,7 +578,9 @@ function AttachmentBody({
             <span className="flex min-w-0 items-center gap-1.5">
               <Paperclip aria-hidden="true" className="size-4 shrink-0 text-fg-muted" />
               <span className="truncate">{f.name}</span>
-              <span className="shrink-0 font-mono text-xs text-fg-muted">{formatBytes(f.sizeBytes)}</span>
+              <span className="shrink-0 font-mono text-xs text-fg-muted">
+                {formatBytes(f.sizeBytes)}
+              </span>
             </span>
             <button
               type="button"

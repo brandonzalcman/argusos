@@ -1,4 +1,4 @@
-import { Badge, Button, Field, type StatusPillProps, StatusPill, Textarea } from "@argus/ui";
+import { Badge, Button, Field, StatusPill, type StatusPillProps, Textarea } from "@argus/ui";
 import { Play, TriangleAlert } from "@argus/ui/icons";
 import { type ReactElement, useState } from "react";
 import { ErrorState } from "./status-views.js";
@@ -6,7 +6,10 @@ import { useWorkflowDryRun } from "./workflow-queries.js";
 import type { WorkflowDryRunResult } from "./workflow-service.js";
 
 const STEP_STATUS: Readonly<
-  Record<WorkflowDryRunResult["steps"][number]["status"], { status: StatusPillProps["status"]; label: string }>
+  Record<
+    WorkflowDryRunResult["steps"][number]["status"],
+    { status: StatusPillProps["status"]; label: string }
+  >
 > = {
   executed: { status: "ok", label: "Executed" },
   skipped: { status: "stale", label: "Skipped" },

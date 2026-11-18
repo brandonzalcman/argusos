@@ -42,16 +42,18 @@ pnpm --filter @argus/docs dev
 
 Expo's development server and Docusaurus development server are tooling entry points only. Starting either does not authenticate a user, connect a backend or enable native capabilities.
 
-## Compose infrastructure scaffold
-
-The Compose file is `deploy/compose/docker-compose.yaml`, with local-only example variables in `deploy/compose/.env.example`. Copy the example to an uncommitted local environment file before starting dependencies:
+## One-command local development
 
 ```sh
-cp deploy/compose/.env.example .env.development
-docker compose --env-file .env.development -f deploy/compose/docker-compose.yaml up -d --wait
+cp deploy/compose/.env.example deploy/compose/.env     # once; Windows: Copy-Item
+docker compose -f deploy/compose/docker-compose.yaml up -d --wait   # dependencies
+pnpm install --frozen-lockfile                                      # once
+pnpm dev                                                            # applications on the host
 ```
 
-On Windows, use `Copy-Item deploy/compose/.env.example .env.development` instead of `cp`. Applications intentionally run as host processes rather than Compose services in this scaffold. These are reserved local ports, not claims that endpoints are running:
+Compose loads `deploy/compose/.env` automatically (git-ignored), so no `--env-file` flag is needed. Every credential in the Compose file comes from that file through `${VAR:?}` interpolation; a missing variable stops startup instead of using a hidden default. The values in `.env.example` are public, local-only placeholders. The root `.env.example` repeats the Postgres and S3 values and the NATS user credentials in the application connection URLs; keep both files in sync when you change them.
+
+The Compose file is `deploy/compose/docker-compose.yaml`. Optional profiles: `--profile observability` (telemetry stack) and `--profile apps` (builds the web/API/realtime/worker images; scaffold only, not verified). Applications run as host processes by default. These are reserved local ports, not claims that endpoints are running:
 
 | Purpose          | Loopback port | Current scaffold ownership          |
 | ---------------- | ------------- | ----------------------------------- |
@@ -61,7 +63,7 @@ On Windows, use `Copy-Item deploy/compose/.env.example .env.development` instead
 | ElectricSQL      | `3003`        | Compose dependency endpoint         |
 | Martin           | `3004`        | Compose dependency endpoint         |
 
-The Compose file also declares loopback dependency ports for PostgreSQL and NATS. See `deploy/README.md` for its current service inventory and provider-specific configuration; this guide refers to object storage only as S3-compatible storage. Starting containers does not run migrations, establish authorization or prove external-service compatibility.
+The Compose file also declares loopback dependency ports for PostgreSQL and NATS (authenticated per user). See `deploy/README.md` for its current service inventory and provider-specific configuration; this guide refers to object storage only as S3-compatible storage. Starting containers does not run migrations, establish authorization or prove external-service compatibility.
 
 ## First vertical slice
 

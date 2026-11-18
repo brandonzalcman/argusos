@@ -3,10 +3,10 @@ export { TableDesignerPageRoute, TableDesignerPageView } from "./table-designer-
 export { TablesListPage } from "./tables-list-page.js";
 export {
   type ApplyMigrationRequest,
+  type AttachmentValue,
   createDisconnectedTablesDataPort,
   type LiveRowsEvent,
   type LiveValueEvent,
-  type AttachmentValue,
   type LookupOption,
   type LookupSearchRequest,
   type MigrationDraftRequest,

@@ -62,12 +62,18 @@ export function compileComponent(source: string): CompileResult {
   const imports = collectImports(code);
   const bad = findDisallowedImport(imports);
   if (bad !== null) {
-    return { ok: false, error: { message: disallowedImportMessage(bad), ...locateImport(source, bad) } };
+    return {
+      ok: false,
+      error: { message: disallowedImportMessage(bad), ...locateImport(source, bad) },
+    };
   }
   return { ok: true, code, imports };
 }
 
-function locateImport(source: string, specifier: string): { line: number | null; column: number | null } {
+function locateImport(
+  source: string,
+  specifier: string,
+): { line: number | null; column: number | null } {
   for (const quote of ['"', "'"]) {
     const index = source.indexOf(`${quote}${specifier}${quote}`);
     if (index >= 0) {

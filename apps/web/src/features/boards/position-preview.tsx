@@ -83,13 +83,24 @@ export function usePositionPreview(boardId: string, definitionVersion: number): 
     selectedLabel: list.find((p) => p.id === selected)?.name ?? null,
     setSelectedPositionId: setSelected,
     result: preview.data,
-    resultStatus: selected === null ? "idle" : preview.isError ? "error" : preview.isPending ? "pending" : "ready",
+    resultStatus:
+      selected === null
+        ? "idle"
+        : preview.isError
+          ? "error"
+          : preview.isPending
+            ? "pending"
+            : "ready",
     resultError: preview.error,
     hiddenBlockIds,
   };
 }
 
-export function PositionPreviewControl({ preview }: { readonly preview: PositionPreview }): ReactElement {
+export function PositionPreviewControl({
+  preview,
+}: {
+  readonly preview: PositionPreview;
+}): ReactElement {
   const { scope } = useBoardsEnvironment();
   return (
     <div className="grid gap-2">
@@ -119,8 +130,8 @@ export function PositionPreviewControl({ preview }: { readonly preview: Position
       {preview.resultStatus === "ready" && preview.result ? (
         <div role="status" className="grid gap-1 text-sm">
           <p>
-            As <strong>{preview.selectedLabel}</strong>: {preview.result.hiddenBlockIds.length} blocks
-            hidden, {preview.result.hiddenFieldIds.length} fields hidden,{" "}
+            As <strong>{preview.selectedLabel}</strong>: {preview.result.hiddenBlockIds.length}{" "}
+            blocks hidden, {preview.result.hiddenFieldIds.length} fields hidden,{" "}
             {preview.result.readOnlyFieldIds.length} read-only.
           </p>
           <ul className="list-disc ps-5 text-fg-muted">

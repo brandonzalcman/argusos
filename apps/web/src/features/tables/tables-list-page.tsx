@@ -99,7 +99,10 @@ export function TablesListPage(): ReactElement {
             >
               {tables.map((table) => (
                 <li key={table.id}>
-                  <Card elevation="raised" className="grid h-full content-start gap-3 p-(--argus-panel-p)">
+                  <Card
+                    elevation="raised"
+                    className="grid h-full content-start gap-3 p-(--argus-panel-p)"
+                  >
                     <div className="grid gap-1">
                       <h2 className="text-md font-semibold text-fg">
                         <Link

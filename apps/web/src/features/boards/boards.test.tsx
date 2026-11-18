@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { BoardGrid } from "./board-renderer.js";
 import { filterBoards } from "./boards-list-page.js";
 import { builderReducer, createBuilderState, isDirty } from "./builder-state.js";
+import { copyBlocks, pasteBlocks } from "./clipboard.js";
 import { validateConfig } from "./config-schema.js";
 import { diffBoards } from "./diff.js";
 import { addBlock, moveBlockTo, nudgeBlock, removeBlock, setBlockHidden } from "./draft.js";
@@ -18,7 +19,9 @@ import { commit, createHistory, redo, undo } from "./history.js";
 import {
   blockSizes,
   breakpointForWidth,
+  collapseEmptyRows,
   layoutFor,
+  moveGroup,
   overlaps,
   placeItem,
   resolveBreakpointItems,
@@ -414,5 +417,94 @@ describe("runtime grid rendering (server-rendered, fixture data)", () => {
     const html = render(bundle);
     expect(html).toContain("hidden because its visibility condition cannot be evaluated");
     expect(html).not.toContain('data-block-kind="divider"');
+  });
+});
+
+describe("multi-select, group move and clipboard", () => {
+  const item = (id: string, x: number, y: number, w: number, h: number): LayoutItem => ({
+    blockId: id,
+    x,
+    y,
+    width: w,
+    height: h,
+    hidden: false,
+  });
+
+  it("moves a group together, clamps to the grid and pushes others down", () => {
+    const moved = moveGroup(
+      [item("a", 0, 0, 4, 2), item("b", 4, 0, 4, 2), item("c", 0, 2, 12, 2)],
+      new Set(["a", "b"]),
+      20,
+      2,
+    );
+    const a = moved.find((i) => i.blockId === "a");
+    const b = moved.find((i) => i.blockId === "b");
+    const c = moved.find((i) => i.blockId === "c");
+    expect(a).toMatchObject({ x: 4, y: 2 });
+    expect(b).toMatchObject({ x: 8, y: 2 });
+    expect(c?.y).toBeGreaterThanOrEqual(4);
+  });
+
+  it("copies blocks and pastes them with new ids below the layout, remapping tabs", () => {
+    const a = nextId();
+    const t = nextId();
+    let bundle = addBlock(fixtureBundle(), "stat", "KPI", a);
+    bundle = addBlock(bundle, "tabs", "Tabs", t);
+    bundle = {
+      ...bundle,
+      definition: {
+        ...bundle.definition,
+        blocks: bundle.definition.blocks.map((blk) =>
+          blk.id === t
+            ? { ...blk, config: { tabs: [{ id: "x", label: "X", blockIds: [a, "outside"] }] } }
+            : blk.id === a
+              ? { ...blk, config: { tableId: "not-on-this-board" } }
+              : blk,
+        ),
+      },
+    };
+    const clip = copyBlocks(bundle, [a, t], "board-1");
+    expect(clip?.blocks).toHaveLength(2);
+    const result = pasteBlocks(bundle, clip as NonNullable<typeof clip>, nextId);
+    expect(result.newIds).toHaveLength(2);
+    expect(new Set([...bundle.definition.blocks.map((b) => b.id), ...result.newIds]).size).toBe(4);
+    const pastedTabs = result.bundle.definition.blocks.find(
+      (b) => b.id !== t && b.type === "tabs" && result.newIds.includes(b.id),
+    );
+    const tabs = pastedTabs?.config.tabs as { blockIds: string[] }[];
+    expect(tabs[0]?.blockIds).toHaveLength(1);
+    expect(tabs[0]?.blockIds[0]).not.toBe(a);
+    expect(result.warnings.some((w) => w.includes("not a data source"))).toBe(true);
+    const items = layoutFor(result.bundle.layout, "desktop");
+    expect(validateItems(items, new Set(result.bundle.definition.blocks.map((b) => b.id)))).toEqual(
+      [],
+    );
+  });
+
+  it("tracks multi-selection in the builder reducer", () => {
+    let state = createBuilderState(fixtureBundle());
+    state = builderReducer(state, { type: "select", id: "a" });
+    state = builderReducer(state, { type: "select", id: "b", toggle: true });
+    expect(state.selectedIds).toEqual(["a", "b"]);
+    expect(state.selectedId).toBe("b");
+    state = builderReducer(state, { type: "select", id: "b", toggle: true });
+    expect(state.selectedIds).toEqual(["a"]);
+    state = builderReducer(state, { type: "select", id: null });
+    expect(state.selectedIds).toEqual([]);
+  });
+});
+
+describe("runtime row compaction", () => {
+  it("removes empty row bands but keeps relative layout", () => {
+    const mk = (id: string, y: number, h: number): LayoutItem => ({
+      blockId: id,
+      x: 0,
+      y,
+      width: 4,
+      height: h,
+      hidden: false,
+    });
+    const out = collapseEmptyRows([mk("a", 0, 2), mk("b", 10, 3), mk("c", 11, 1)]);
+    expect(out.map((i) => i.y)).toEqual([0, 2, 3]);
   });
 });

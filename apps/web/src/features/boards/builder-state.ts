@@ -33,6 +33,7 @@ export type BuilderAction =
   | { readonly type: "redo" }
   | { readonly type: "select"; readonly id: string | null; readonly toggle?: boolean }
   | { readonly type: "select-many"; readonly ids: readonly string[] }
+  | { readonly type: "announce"; readonly message: string }
   | { readonly type: "breakpoint"; readonly value: LayoutBreakpoint }
   | { readonly type: "saved"; readonly version: number; readonly bundle: BoardBundle };
 
@@ -105,6 +106,8 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
         : [...state.selectedIds, id];
       return { ...state, selectedIds, selectedId: selectedIds.at(-1) ?? null };
     }
+    case "announce":
+      return { ...state, announcement: action.message };
     case "select-many":
       return { ...state, selectedIds: action.ids, selectedId: action.ids.at(-1) ?? null };
     case "breakpoint":

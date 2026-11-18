@@ -1,4 +1,7 @@
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@argus/ui";
 import { type ReactElement, useId, useState } from "react";
+import { ejectBlockToComponent } from "./code-mode.js";
+import { BlockCodeView } from "./code-panes.js";
 import { ConditionEditor } from "./condition-editor.js";
 import { blockConfigFields, type ConfigField, validateConfig } from "./config-schema.js";
 import {
@@ -238,6 +241,71 @@ export interface InspectorProps {
   readonly validator: ExpressionValidationPort;
   readonly onEdit: EditHandler;
   readonly displayName: string;
+  /**
+   * Dev mode code tab. When set, a selected block gets "Settings | Code" tabs; `editable` is false
+   * for positions without `editCode` (the code is then shown read-only). Applying replaces the
+   * block as one undo step through `onEdit`.
+   */
+  readonly code?: { readonly editable: boolean };
+  /**
+   * "Customize code" for built-in blocks: creates an editable component from the block. Omit to
+   * hide the button (callers pass it only when `editCode` is allowed and a handler exists).
+   */
+  readonly onEjectBlock?: (
+    block: BlockDefinition,
+  ) => Promise<{ readonly componentId: string; readonly componentVersion: number } | null>;
+}
+
+function EjectControl({
+  block,
+  bundle,
+  onEject,
+  onEdit,
+}: {
+  readonly block: BlockDefinition;
+  readonly bundle: BoardBundle;
+  readonly onEject: NonNullable<InspectorProps["onEjectBlock"]>;
+  readonly onEdit: EditHandler;
+}): ReactElement {
+  const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const run = async (): Promise<void> => {
+    setPending(true);
+    setFailure(null);
+    try {
+      const component = await onEject(block);
+      if (component) {
+        onEdit(ejectBlockToComponent(bundle, block.id, component), {
+          announce: `${block.name} is now a custom component. Press Ctrl+Z to undo.`,
+        });
+      }
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : "Could not create the component.");
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <div className="boards-field">
+      <button
+        type="button"
+        className="boards-btn"
+        disabled={pending}
+        aria-busy={pending}
+        onClick={() => void run()}
+      >
+        {pending ? "Creating component…" : "Customize code"}
+      </button>
+      <p className="boards-help">
+        Turns this block into an editable custom component. Same place and settings on the board.
+      </p>
+      {failure ? (
+        <p className="boards-field-error" role="alert">
+          {failure}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 /**
@@ -252,6 +320,8 @@ export function Inspector({
   validator,
   onEdit,
   displayName,
+  code,
+  onEjectBlock,
 }: InspectorProps): ReactElement {
   const nameId = useId();
   const boardNameId = useId();
@@ -305,9 +375,8 @@ export function Inspector({
   const issues = validateConfig(block.type, block.config);
   const fields = blockConfigFields[block.type] as readonly AnyField[];
 
-  return (
-    <section aria-label={`Properties of ${block.name}`} className="boards-pane">
-      <h2>{displayName}</h2>
+  const settings = (
+    <>
       <div className="boards-field">
         <label htmlFor={nameId}>Block name</label>
         <input
@@ -462,6 +531,31 @@ export function Inspector({
       >
         Remove “{block.name}”
       </button>
+      {onEjectBlock && block.type !== "custom-component" ? (
+        <EjectControl block={block} bundle={bundle} onEject={onEjectBlock} onEdit={onEdit} />
+      ) : null}
+    </>
+  );
+
+  return (
+    <section aria-label={`Properties of ${block.name}`} className="boards-pane">
+      <h2>{displayName}</h2>
+      {code ? (
+        <Tabs defaultValue="settings">
+          <TabsList aria-label="Block editor">
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="code">Code</TabsTrigger>
+          </TabsList>
+          <TabsContent value="settings" className="boards-pane">
+            {settings}
+          </TabsContent>
+          <TabsContent value="code">
+            <BlockCodeView bundle={bundle} block={block} editable={code.editable} onEdit={onEdit} />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        settings
+      )}
     </section>
   );
 }

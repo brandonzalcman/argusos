@@ -3,6 +3,7 @@ export interface AuthenticatedIdentity {
   readonly userId: string;
   readonly sessionId: string;
   readonly positionIds: readonly string[];
+  readonly authenticatedAt: Date;
   readonly sessionExpiresAt: Date;
   readonly authenticationMethods: readonly ("password" | "oidc" | "passkey" | "mfa")[];
 }

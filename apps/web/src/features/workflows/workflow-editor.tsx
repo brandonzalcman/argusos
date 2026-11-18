@@ -38,8 +38,8 @@ import {
   SaveStatus,
   SessionUnavailable,
 } from "./status-views.js";
-import { useSaveWorkflowDraft, useWorkflow } from "./workflow-queries.js";
 import { WorkflowGraph } from "./workflow-graph.js";
+import { useSaveWorkflowDraft, useWorkflow } from "./workflow-queries.js";
 import { WorkflowVersionConflictError } from "./workflow-service.js";
 import { LifecyclePill } from "./workflows-list.js";
 
@@ -308,24 +308,6 @@ export function WorkflowEditor({ workflow, readOnly = false }: WorkflowEditorPro
               </div>
             </Panel>
           )}
-          <Panel title="Test and history">
-            <Tabs defaultValue="dry-run">
-              <TabsList aria-label="Test and history">
-                <TabsTrigger value="dry-run">Test run (dry run)</TabsTrigger>
-                <TabsTrigger value="runs">Run history</TabsTrigger>
-              </TabsList>
-              <TabsContent value="dry-run" className="pt-3">
-                <DryRunPanel
-                  workflowId={workflow.id}
-                  savedVersion={baseVersion}
-                  hasUnsavedChanges={dirty}
-                />
-              </TabsContent>
-              <TabsContent value="runs" className="pt-3">
-                <RunHistoryPanel workflowId={workflow.id} />
-              </TabsContent>
-            </Tabs>
-          </Panel>
         </div>
         <div className="grid min-w-0 gap-(--argus-gap)">
           <NodeInspector
@@ -344,6 +326,26 @@ export function WorkflowEditor({ workflow, readOnly = false }: WorkflowEditorPro
             }
             onRequestDelete={setPendingDelete}
           />
+        </div>
+        <div className="min-w-0 xl:col-span-2">
+          <Panel title="Test and history">
+            <Tabs defaultValue="dry-run">
+              <TabsList aria-label="Test and history">
+                <TabsTrigger value="dry-run">Test run (dry run)</TabsTrigger>
+                <TabsTrigger value="runs">Run history</TabsTrigger>
+              </TabsList>
+              <TabsContent value="dry-run" className="pt-3">
+                <DryRunPanel
+                  workflowId={workflow.id}
+                  savedVersion={baseVersion}
+                  hasUnsavedChanges={dirty}
+                />
+              </TabsContent>
+              <TabsContent value="runs" className="pt-3">
+                <RunHistoryPanel workflowId={workflow.id} />
+              </TabsContent>
+            </Tabs>
+          </Panel>
         </div>
       </div>
     </PageContainer>
